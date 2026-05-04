@@ -17,7 +17,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 
 from bot.config import get_config
 from bot.handlers import start, intent_handler
-from bot.solana.jupiter import jupiter_client
+from bot.solana.jupiter import jupiter_client, jupiter_price_client
 
 
 def setup_logging(level: str = "INFO"):
@@ -53,6 +53,7 @@ async def main():
         await dp.start_polling(bot, skip_updates=True)
     finally:
         await jupiter_client.close()
+        await jupiter_price_client.close()
         await bot.session.close()
         logger.info("Bot stopped.")
 

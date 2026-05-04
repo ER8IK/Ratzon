@@ -13,6 +13,7 @@ from bot.intents.models import (
     AnyIntent, IntentType, SwapIntent, BalanceIntent, PriceIntent,
     QuoteResult, RiskReport
 )
+from bot.solana.jupiter_price import jupiter_price_client
 from bot.solana.jupiter import jupiter_client
 from bot.risk.engine import risk_engine
 from bot.services import formatter
