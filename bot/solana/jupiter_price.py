@@ -42,6 +42,7 @@ class JupiterPriceClient:
                     return None
 
                 data = await resp.json()
+                logger.info(f"Jupiter RAW response (MULTI): {data}")
 
                 # 👇 ВСТАВЬ СЮДА
                 logger.info(f"Jupiter RAW response for {symbol}: {data}")
