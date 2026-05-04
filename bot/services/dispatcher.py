@@ -1,20 +1,14 @@
 # bot/services/dispatcher.py
-"""
-Диспетчер интентов.
-Оркестрирует весь pipeline: parse → quote → risk → format.
-
-Это главный сервисный слой, вызываемый из aiogram handlers.
-"""
-
 import logging
 from dataclasses import dataclass
 
 from bot.intents.models import (
-    AnyIntent, IntentType, SwapIntent, BalanceIntent, PriceIntent,
-    QuoteResult, RiskReport
+    AnyIntent, IntentType, SwapIntent, BalanceIntent,
+    PriceIntent, RateIntent, CompareIntent,
+    QuoteResult, RiskReport,
 )
-from bot.solana.jupiter_price import jupiter_price_client
 from bot.solana.jupiter import jupiter_client
+from bot.solana.jupiter_price import jupiter_price_client
 from bot.risk.engine import risk_engine
 from bot.services import formatter
 
@@ -23,7 +17,6 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class DispatchResult:
-    """Результат обработки интента — готовый ответ для Telegram."""
     text: str
     show_confirm_button: bool = False
     intent: AnyIntent = None
@@ -32,111 +25,92 @@ class DispatchResult:
 
 
 class IntentDispatcher:
-    """
-    Маршрутизирует интент к нужному обработчику и возвращает DispatchResult.
-    """
 
     async def dispatch(self, intent: AnyIntent) -> DispatchResult:
-        """
-        Главный метод — принимает любой интент, возвращает готовый ответ.
-        """
-        logger.info(f"Dispatching intent type={intent.intent_type}")
+        logger.info(f"Dispatching: type={intent.intent_type}")
 
         if intent.intent_type == IntentType.SWAP:
             return await self._handle_swap(intent)
-
-        elif intent.intent_type == IntentType.BALANCE:
-            return self._handle_balance(intent)
-
         elif intent.intent_type == IntentType.PRICE:
             return await self._handle_price(intent)
-
+        elif intent.intent_type == IntentType.RATE:
+            return await self._handle_rate(intent)
+        elif intent.intent_type == IntentType.COMPARE:
+            return await self._handle_compare(intent)
+        elif intent.intent_type == IntentType.BALANCE:
+            return self._handle_balance(intent)
         else:
             return DispatchResult(
                 text=formatter.format_intent_unknown(intent.raw_text),
                 intent=intent,
             )
 
-    # ─── Handlers ─────────────────────────────────────────────────────────────
-
     async def _handle_swap(self, intent: SwapIntent) -> DispatchResult:
-        """
-        Pipeline для swap:
-        1. Валидация интента
-        2. Запрос котировки в Jupiter
-        3. Риск-оценка
-        4. Форматирование
-        """
-        # Шаг 1: валидация
         if not intent.is_valid():
             return DispatchResult(
-                text=formatter.format_parse_error(intent),
-                intent=intent,
+                text=formatter.format_parse_error(intent), intent=intent,
             )
-
-        # Шаг 2: получаем котировку (реальные данные!)
-        logger.info(
-            f"Getting Jupiter quote: {intent.amount} "
-            f"{intent.input_token} → {intent.output_token}"
-        )
         quote = await jupiter_client.get_quote(intent)
-
         if quote is None:
             return DispatchResult(
-                text=formatter.format_no_route(intent),
-                intent=intent,
+                text=formatter.format_no_route(intent), intent=intent,
             )
-
-        # Шаг 3: риск-оценка
         risk = risk_engine.evaluate(intent, quote)
-
-        # Шаг 4: форматируем ответ
-        text = formatter.format_swap_response(intent, quote, risk)
-
         return DispatchResult(
-            text=text,
+            text=formatter.format_swap_response(intent, quote, risk),
             show_confirm_button=True,
-            intent=intent,
-            quote=quote,
-            risk=risk,
-        )
-
-    def _handle_balance(self, intent: BalanceIntent) -> DispatchResult:
-        """Показывает мок-баланс (реальный wallet = будущая фича)."""
-        return DispatchResult(
-            text=formatter.format_balance_mock(),
-            intent=intent,
+            intent=intent, quote=quote, risk=risk,
         )
 
     async def _handle_price(self, intent: PriceIntent) -> DispatchResult:
-        """
-        Получает цену через Jupiter (свапаем 1 токен в USDC чтобы получить цену).
-        """
         if not intent.token:
             return DispatchResult(
-                text="❓ Which token price do you want to check?",
+                text="❓ Which token? Example: <code>Price of SOL</code>",
                 intent=intent,
             )
+        price_data = await jupiter_price_client.get_price(intent.token)
+        if price_data:
+            text = formatter.format_price_real(intent.token, price_data)
+        else:
+            text = formatter.format_price_unavailable(intent.token)
+        return DispatchResult(text=text, intent=intent)
 
-        # Хак: используем swap quote для получения цены
-        price_intent = SwapIntent(
-            raw_text=f"swap 1 {intent.token} to USDC",
-            intent_type=IntentType.SWAP,
-            confidence=1.0,
-            amount=1.0,
-            input_token=intent.token,
-            output_token="USDC",
+    async def _handle_rate(self, intent: RateIntent) -> DispatchResult:
+        if not intent.input_token or not intent.output_token:
+            return DispatchResult(
+                text="❓ Example: <code>Rate SOL to USDC</code>", intent=intent,
+            )
+        swap_intent = SwapIntent(
+            raw_text=intent.raw_text, intent_type=IntentType.SWAP,
+            confidence=1.0, amount=intent.amount or 1.0,
+            input_token=intent.input_token, output_token=intent.output_token,
         )
-
-        quote = await jupiter_client.get_quote(price_intent)
-
-        price = quote.output_amount if quote else None
+        quote = await jupiter_client.get_quote(swap_intent)
+        if not quote:
+            return DispatchResult(
+                text=formatter.format_no_route(swap_intent), intent=intent,
+            )
         return DispatchResult(
-            text=formatter.format_price_mock(intent.token, price),
-            intent=intent,
-            quote=quote,
+            text=formatter.format_rate(intent, quote),
+            intent=intent, quote=quote,
+        )
+
+    async def _handle_compare(self, intent: CompareIntent) -> DispatchResult:
+        if not intent.token_a or not intent.token_b:
+            return DispatchResult(
+                text="❓ Example: <code>Compare SOL and BONK</code>", intent=intent,
+            )
+        prices = await jupiter_price_client.get_prices([intent.token_a, intent.token_b])
+        text = formatter.format_compare(
+            intent.token_a, prices.get(intent.token_a),
+            intent.token_b, prices.get(intent.token_b),
+        )
+        return DispatchResult(text=text, intent=intent)
+
+    def _handle_balance(self, intent: BalanceIntent) -> DispatchResult:
+        return DispatchResult(
+            text=formatter.format_balance_mock(), intent=intent,
         )
 
 
-# Синглтон
 intent_dispatcher = IntentDispatcher()

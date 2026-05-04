@@ -1,219 +1,202 @@
 # bot/intents/parser.py
-"""
-Intent Parser — сердце системы.
-Принимает сырой текст пользователя → возвращает типизированный Intent.
-
-Стратегия: rule-based с regex (надёжно, быстро, без API).
-Можно расширить LLM-парсингом поверх (опционально).
-"""
-
 import re
 import logging
 from typing import Union
 
 from .models import (
     Intent, SwapIntent, SendIntent, BalanceIntent, PriceIntent,
-    IntentType
+    RateIntent, CompareIntent, IntentType
 )
 from .patterns import (
     SWAP_KEYWORDS, SEND_KEYWORDS, BALANCE_KEYWORDS,
-    PRICE_KEYWORDS, STAKE_KEYWORDS,
-    SWAP_PATTERN, SEND_PATTERN,
+    PRICE_KEYWORDS, RATE_KEYWORDS, COMPARE_KEYWORDS,
     normalize_token, AMOUNT_PATTERN
 )
 
 logger = logging.getLogger(__name__)
 
-# Тип для всех возможных интентов
-AnyIntent = Union[SwapIntent, SendIntent, BalanceIntent, PriceIntent, Intent]
+AnyIntent = Union[
+    SwapIntent, SendIntent, BalanceIntent,
+    PriceIntent, RateIntent, CompareIntent, Intent
+]
 
 
 class IntentParser:
-    """
-    Rule-based парсер намерений.
-    
-    Порядок приоритетов:
-    1. Точное совпадение по паттерну (SWAP_PATTERN и т.д.)
-    2. Keyword-based классификация
-    3. Fallback → UNKNOWN
-    """
 
     def parse(self, text: str) -> AnyIntent:
-        text_clean = text.strip()
-        text_lower = text_clean.lower()
+        t = text.strip()
+        tl = t.lower()
+        logger.debug(f"Parsing: {t!r}")
 
-        logger.debug(f"Parsing intent: {text_clean!r}")
-
-        # 1. Проверяем точные паттерны
-        if self._has_keywords(text_lower, SWAP_KEYWORDS):
-            intent = self._parse_swap(text_clean, text_lower)
+        # COMPARE первым — иначе "compare" попадёт в PRICE через "how much"
+        if self._has_keywords(tl, COMPARE_KEYWORDS):
+            intent = self._parse_compare(t, tl)
             if intent:
                 return intent
 
-        if self._has_keywords(text_lower, SEND_KEYWORDS):
-            intent = self._parse_send(text_clean, text_lower)
+        if self._has_keywords(tl, SWAP_KEYWORDS):
+            intent = self._parse_swap(t, tl)
             if intent:
                 return intent
 
-        if self._has_keywords(text_lower, BALANCE_KEYWORDS):
-            return self._parse_balance(text_clean, text_lower)
+        if self._has_keywords(tl, SEND_KEYWORDS):
+            intent = self._parse_send(t, tl)
+            if intent:
+                return intent
 
-        if self._has_keywords(text_lower, PRICE_KEYWORDS):
-            return self._parse_price(text_clean, text_lower)
+        if self._has_keywords(tl, BALANCE_KEYWORDS):
+            return self._parse_balance(t, tl)
 
-        # 2. Fallback
-        return Intent(
-            raw_text=text_clean,
-            intent_type=IntentType.UNKNOWN,
-            confidence=0.0,
-        )
+        if self._has_keywords(tl, RATE_KEYWORDS):
+            intent = self._parse_rate(t, tl)
+            if intent:
+                return intent
 
-    # ─── Парсеры по типам ─────────────────────────────────────────────────────
+        if self._has_keywords(tl, PRICE_KEYWORDS):
+            return self._parse_price(t, tl)
 
-    def _parse_swap(self, text: str, text_lower: str) -> SwapIntent | None:
-        """
-        Примеры:
-          "Swap 1 SOL to USDC"
-          "обменять 0.5 sol на usdc"
-          "buy 100 USDC with SOL"
-          "convert 2 SOL to BONK"
-        """
-        # Паттерн 1: "swap AMOUNT TOKEN to TOKEN"
+        # Fallback: если есть известный токен — price intent
+        token = self._extract_any_token(tl)
+        if token:
+            return PriceIntent(
+                raw_text=t, intent_type=IntentType.PRICE,
+                confidence=0.5, token=token,
+            )
+
+        return Intent(raw_text=t, intent_type=IntentType.UNKNOWN, confidence=0.0)
+
+    # ── Parsers ───────────────────────────────────────────────────────────
+
+    def _parse_compare(self, text: str, tl: str) -> CompareIntent | None:
+        # "compare SOL and BONK" / "compare SOL BONK"
         match = re.search(
-            r'(?:swap|exchange|trade|convert|buy|sell|обменять|своп|конвертировать)'
-            r'\s+(\d+(?:[.,]\d+)?)\s+(\w+)\s+(?:to|for|into|на|в|→|->|за)\s+(\w+)',
-            text_lower, re.IGNORECASE
+            r'compare\s+(\w+)\s+(?:and|vs|versus|with|и)?\s*(\w+)', tl
         )
-
         if match:
-            amount_str, in_tok_raw, out_tok_raw = match.groups()
-            amount = float(amount_str.replace(',', '.'))
-            in_token = normalize_token(in_tok_raw)
-            out_token = normalize_token(out_tok_raw)
+            a_raw, b_raw = match.groups()
+            token_a = normalize_token(a_raw)
+            token_b = normalize_token(b_raw)
+            if token_a or token_b:
+                return CompareIntent(
+                    raw_text=text, intent_type=IntentType.COMPARE, confidence=0.9,
+                    token_a=token_a or a_raw.upper(),
+                    token_b=token_b or b_raw.upper(),
+                )
 
-            return SwapIntent(
-                raw_text=text,
-                intent_type=IntentType.SWAP,
-                confidence=0.95,
-                amount=amount,
-                input_token=in_token or in_tok_raw.upper(),
-                output_token=out_token or out_tok_raw.upper(),
-            )
-
-        # Паттерн 2: "buy 100 USDC" (неявный input = SOL)
-        match2 = re.search(
-            r'(?:buy|купить)\s+(\d+(?:[.,]\d+)?)\s+(\w+)',
-            text_lower
-        )
-        if match2:
-            amount_str, out_tok_raw = match2.groups()
-            out_token = normalize_token(out_tok_raw)
-            return SwapIntent(
-                raw_text=text,
-                intent_type=IntentType.SWAP,
-                confidence=0.75,
-                amount=float(amount_str.replace(',', '.')),
-                input_token="SOL",  # предполагаем SOL как базовый
-                output_token=out_token or out_tok_raw.upper(),
-            )
-
-        # Паттерн 3: "sell 1 SOL" (неявный output = USDC)
-        match3 = re.search(
-            r'(?:sell|продать)\s+(\d+(?:[.,]\d+)?)\s+(\w+)',
-            text_lower
-        )
-        if match3:
-            amount_str, in_tok_raw = match3.groups()
-            in_token = normalize_token(in_tok_raw)
-            return SwapIntent(
-                raw_text=text,
-                intent_type=IntentType.SWAP,
-                confidence=0.75,
-                amount=float(amount_str.replace(',', '.')),
-                input_token=in_token or in_tok_raw.upper(),
-                output_token="USDC",  # предполагаем USDC как выход
-            )
-
+        # "SOL vs BONK" / "SOL versus BONK"
+        match = re.search(r'(\w+)\s+(?:vs|versus|против)\s+(\w+)', tl)
+        if match:
+            a_raw, b_raw = match.groups()
+            token_a = normalize_token(a_raw)
+            token_b = normalize_token(b_raw)
+            if token_a or token_b:
+                return CompareIntent(
+                    raw_text=text, intent_type=IntentType.COMPARE, confidence=0.85,
+                    token_a=token_a or a_raw.upper(),
+                    token_b=token_b or b_raw.upper(),
+                )
         return None
 
-    def _parse_send(self, text: str, text_lower: str) -> SendIntent | None:
-        """
-        Примеры:
-          "Send 0.5 SOL to ABC123..."
-          "Transfer 10 USDC to vitalik.sol"
-        """
+    def _parse_swap(self, text: str, tl: str) -> SwapIntent | None:
         match = re.search(
-            r'(?:send|transfer|pay|отправить|перевести)'
-            r'\s+(\d+(?:[.,]\d+)?)\s+(\w+)\s+(?:to|на|для|->)\s+(\S+)',
-            text_lower
+            r'(?:swap|exchange|trade|convert|обменять|своп|конвертировать)'
+            r'\s+(\d+(?:[.,]\d+)?)\s+(\w+)\s+'
+            r'(?:to|for|into|на|в|→|->|за)\s+(\w+)', tl
         )
         if match:
-            amount_str, token_raw, recipient = match.groups()
-            token = normalize_token(token_raw)
+            amount, in_raw, out_raw = match.groups()
+            return SwapIntent(
+                raw_text=text, intent_type=IntentType.SWAP, confidence=0.95,
+                amount=float(amount.replace(',', '.')),
+                input_token=normalize_token(in_raw) or in_raw.upper(),
+                output_token=normalize_token(out_raw) or out_raw.upper(),
+            )
+
+        match = re.search(r'(?:buy|купить)\s+(\d+(?:[.,]\d+)?)\s+(\w+)', tl)
+        if match:
+            amount, out_raw = match.groups()
+            return SwapIntent(
+                raw_text=text, intent_type=IntentType.SWAP, confidence=0.75,
+                amount=float(amount.replace(',', '.')),
+                input_token="SOL",
+                output_token=normalize_token(out_raw) or out_raw.upper(),
+            )
+
+        match = re.search(r'(?:sell|продать)\s+(\d+(?:[.,]\d+)?)\s+(\w+)', tl)
+        if match:
+            amount, in_raw = match.groups()
+            return SwapIntent(
+                raw_text=text, intent_type=IntentType.SWAP, confidence=0.75,
+                amount=float(amount.replace(',', '.')),
+                input_token=normalize_token(in_raw) or in_raw.upper(),
+                output_token="USDC",
+            )
+        return None
+
+    def _parse_send(self, text: str, tl: str) -> SendIntent | None:
+        match = re.search(
+            r'(?:send|transfer|pay|отправить|перевести)'
+            r'\s+(\d+(?:[.,]\d+)?)\s+(\w+)\s+(?:to|на|для|->)\s+(\S+)', tl
+        )
+        if match:
+            amount, token_raw, recipient = match.groups()
             return SendIntent(
-                raw_text=text,
-                intent_type=IntentType.SEND,
-                confidence=0.9,
-                amount=float(amount_str.replace(',', '.')),
-                token=token or token_raw.upper(),
+                raw_text=text, intent_type=IntentType.SEND, confidence=0.9,
+                amount=float(amount.replace(',', '.')),
+                token=normalize_token(token_raw) or token_raw.upper(),
                 recipient=recipient,
             )
         return None
 
-    def _parse_balance(self, text: str, text_lower: str) -> BalanceIntent:
-        """
-        Примеры:
-          "What's my balance?"
-          "Show SOL balance"
-          "баланс usdc"
-        """
-        # Ищем конкретный токен в запросе
-        token = None
-        words = text_lower.split()
+    def _parse_balance(self, text: str, tl: str) -> BalanceIntent:
+        token = self._extract_any_token(tl)
+        return BalanceIntent(
+            raw_text=text, intent_type=IntentType.BALANCE,
+            confidence=0.85, token=token,
+        )
+
+    def _parse_price(self, text: str, tl: str) -> PriceIntent:
+        token = self._extract_any_token(tl)
+        return PriceIntent(
+            raw_text=text, intent_type=IntentType.PRICE,
+            confidence=0.85, token=token,
+        )
+
+    def _parse_rate(self, text: str, tl: str) -> RateIntent | None:
+        match = re.search(
+            r'how much\s+(\w+)\s+(?:for|is)\s+(\d+(?:[.,]\d+)?)\s+(\w+)', tl
+        )
+        if match:
+            out_raw, amount, in_raw = match.groups()
+            return RateIntent(
+                raw_text=text, intent_type=IntentType.RATE, confidence=0.85,
+                amount=float(amount.replace(',', '.')),
+                input_token=normalize_token(in_raw) or in_raw.upper(),
+                output_token=normalize_token(out_raw) or out_raw.upper(),
+            )
+
+        match = re.search(r'rate\s+(\w+)\s+(?:to|vs|/)\s+(\w+)', tl)
+        if match:
+            in_raw, out_raw = match.groups()
+            return RateIntent(
+                raw_text=text, intent_type=IntentType.RATE, confidence=0.8,
+                amount=1.0,
+                input_token=normalize_token(in_raw) or in_raw.upper(),
+                output_token=normalize_token(out_raw) or out_raw.upper(),
+            )
+        return None
+
+    def _extract_any_token(self, tl: str) -> str | None:
+        words = re.findall(r'\b\w+\b', tl)
         for word in words:
             t = normalize_token(word)
             if t:
-                token = t
-                break
-
-        return BalanceIntent(
-            raw_text=text,
-            intent_type=IntentType.BALANCE,
-            confidence=0.85,
-            token=token,
-        )
-
-    def _parse_price(self, text: str, text_lower: str) -> PriceIntent:
-        """
-        Примеры:
-          "Price of SOL"
-          "How much is BONK"
-          "SOL price"
-        """
-        token = None
-        words = re.findall(r'\b\w+\b', text_lower)
-        for word in words:
-            t = normalize_token(word)
-            if t and t not in ("USDC", "USD"):  # пропускаем базовую валюту
-                token = t
-                break
-
-        return PriceIntent(
-            raw_text=text,
-            intent_type=IntentType.PRICE,
-            confidence=0.85,
-            token=token,
-        )
-
-    # ─── Утилиты ─────────────────────────────────────────────────────────────
+                return t
+        return None
 
     @staticmethod
     def _has_keywords(text: str, keywords: list[str]) -> bool:
-        for kw in keywords:
-            if kw in text:
-                return True
-        return False
+        return any(kw in text for kw in keywords)
 
 
-# Глобальный синглтон парсера
 intent_parser = IntentParser()
