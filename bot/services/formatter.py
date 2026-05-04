@@ -80,6 +80,69 @@ def format_swap_response(
 
     return "\n".join(lines)
 
+def format_price_real(symbol: str, price_data: dict) -> str:
+    price = price_data.get("price_usd", 0)
+    if price >= 1:
+        price_str = f"${price:,.4f}"
+    elif price >= 0.001:
+        price_str = f"${price:.6f}"
+    else:
+        price_str = f"${price:.10f}"
+
+    return (
+        f"💲 <b>{symbol} Price</b>\n\n"
+        f"<b>{price_str}</b>\n\n"
+        f"<i>Live data · Jupiter Price API</i>\n\n"
+        f"Want to swap? Try:\n"
+        f"<code>Swap 1 {symbol} to USDC</code>"
+    )
+
+
+def format_price_unavailable(symbol: str) -> str:
+    return (
+        f"❓ <b>{symbol} price not found</b>\n\n"
+        f"This token may not be listed on Jupiter.\n\n"
+        f"Try: <code>Swap 1 {symbol} to USDC</code> to get a live quote."
+    )
+
+
+def format_rate(intent, quote: QuoteResult) -> str:
+    return (
+        f"📐 <b>Rate</b>\n\n"
+        f"1 <b>{intent.input_token}</b> = "
+        f"<b>{quote.exchange_rate:,.4f} {intent.output_token}</b>\n\n"
+        f"Route: <code>{quote.route_label}</code>\n"
+        f"Price impact: {_impact_emoji(quote.price_impact_pct)} {quote.price_impact_display}\n\n"
+        f"<i>Live data · Jupiter Aggregator</i>"
+    )
+
+
+def format_compare(
+    token_a: str, price_a: dict | None,
+    token_b: str, price_b: dict | None,
+) -> str:
+    def fmt(symbol, data):
+        if not data:
+            return f"{symbol}: <i>unavailable</i>"
+        p = data["price_usd"]
+        if p >= 1:
+            return f"{symbol}: <b>${p:,.4f}</b>"
+        else:
+            return f"{symbol}: <b>${p:.8f}</b>"
+
+    lines = [
+        "⚖️ <b>Price Comparison</b>\n",
+        fmt(token_a, price_a),
+        fmt(token_b, price_b),
+    ]
+
+    if price_a and price_b and price_b["price_usd"] > 0:
+        ratio = price_a["price_usd"] / price_b["price_usd"]
+        lines.append(f"\n1 {token_a} = <b>{ratio:,.4f} {token_b}</b>")
+
+    lines.append("\n<i>Live data · Jupiter Price API</i>")
+    return "\n".join(lines)
+
 
 def format_intent_unknown(text: str) -> str:
     return (

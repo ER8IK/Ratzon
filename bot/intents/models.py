@@ -1,43 +1,40 @@
 # bot/intents/models.py
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional
+from typing import Optional, Union
 
 
 class IntentType(str, Enum):
-    SWAP = "swap"
-    SEND = "send"
+    SWAP    = "swap"
+    SEND    = "send"
     BALANCE = "balance"
-    PRICE = "price"
-    STAKE = "stake"
+    PRICE   = "price"
+    RATE    = "rate"
+    COMPARE = "compare"
+    STAKE   = "stake"
     UNKNOWN = "unknown"
 
 
 class RiskLevel(str, Enum):
-    LOW = "🟢 Low"
-    MEDIUM = "🟡 Medium"
-    HIGH = "🔴 High"
+    LOW      = "🟢 Low"
+    MEDIUM   = "🟡 Medium"
+    HIGH     = "🔴 High"
     CRITICAL = "⛔ Critical"
 
-from typing import Union
-
-AnyIntent = Union["SwapIntent", "SendIntent", "BalanceIntent", "PriceIntent", "Intent"]
 
 @dataclass
 class Intent:
-    """Базовый класс для всех интентов"""
-    raw_text: str
+    raw_text:    str
     intent_type: IntentType = IntentType.UNKNOWN
-    confidence: float = 0.0  # 0.0 - 1.0
+    confidence:  float = 0.0
 
 
 @dataclass
 class SwapIntent(Intent):
-    """Интент: обмен токенов"""
-    amount: Optional[float] = None
-    input_token: Optional[str] = None
-    output_token: Optional[str] = None
-    slippage_bps: int = 50  # 0.5% по умолчанию
+    amount:       Optional[float] = None
+    input_token:  Optional[str]   = None
+    output_token: Optional[str]   = None
+    slippage_bps: int = 50
 
     def is_valid(self) -> bool:
         return all([
@@ -50,39 +47,49 @@ class SwapIntent(Intent):
 
 @dataclass
 class SendIntent(Intent):
-    """Интент: отправка токенов"""
-    amount: Optional[float] = None
-    token: Optional[str] = None
-    recipient: Optional[str] = None
+    amount:    Optional[float] = None
+    token:     Optional[str]   = None
+    recipient: Optional[str]   = None
 
     def is_valid(self) -> bool:
-        return all([
-            self.amount is not None,
-            self.token is not None,
-            self.recipient is not None,
-        ])
+        return all([self.amount, self.token, self.recipient])
 
 
 @dataclass
 class BalanceIntent(Intent):
-    """Интент: проверка баланса"""
-    token: Optional[str] = None  # None = все токены
+    token: Optional[str] = None
 
 
 @dataclass
 class PriceIntent(Intent):
-    """Интент: цена токена"""
-    token: Optional[str] = None
+    token:    Optional[str] = None
     vs_token: str = "USDC"
 
 
 @dataclass
+class RateIntent(Intent):
+    amount:       Optional[float] = None
+    input_token:  Optional[str]   = None
+    output_token: Optional[str]   = None
+
+
+@dataclass
+class CompareIntent(Intent):
+    token_a: Optional[str] = None
+    token_b: Optional[str] = None
+
+
+AnyIntent = Union[
+    SwapIntent, SendIntent, BalanceIntent,
+    PriceIntent, RateIntent, CompareIntent, Intent
+]
+
+
+@dataclass
 class RiskReport:
-    """Результат риск-оценки"""
-    level: RiskLevel = RiskLevel.LOW
-    score: int = 0          # 0-100, выше = опаснее
+    level:    RiskLevel = RiskLevel.LOW
+    score:    int = 0
     warnings: list = field(default_factory=list)
-    details: str = ""
 
     def add_warning(self, msg: str, score_delta: int = 10):
         self.warnings.append(msg)
@@ -102,15 +109,14 @@ class RiskReport:
 
 @dataclass
 class QuoteResult:
-    """Результат запроса котировки"""
-    input_token: str
-    output_token: str
-    input_amount: float
-    output_amount: float
+    input_token:      str
+    output_token:     str
+    input_amount:     float
+    output_amount:    float
     price_impact_pct: float
-    route_label: str
-    fees_sol: float
-    raw_response: dict = field(default_factory=dict)
+    route_label:      str
+    fees_sol:         float
+    raw_response:     dict = field(default_factory=dict)
 
     @property
     def price_impact_display(self) -> str:
