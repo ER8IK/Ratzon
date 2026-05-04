@@ -61,7 +61,7 @@ class JupiterPriceClient:
 
         try:
             session = await self._get_session()
-            params = {"ids": ",".join(mints.values())}
+            params = [("ids", m) for m in mints.values()]
             async with session.get(JUPITER_PRICE_URL, params=params) as resp:
                 if resp.status != 200:
                     return {}
@@ -81,7 +81,13 @@ class JupiterPriceClient:
             data_block = data.get("data", {})
 
             # 1. Прямой поиск по mint
-            token_data = data_block.get(mint)
+            token_data = (
+            data_block.get(mint)
+            or data_block.get(mint.lower())
+            or data_block.get(mint.upper())
+            or data_block.get(symbol)
+            or data_block.get(symbol.lower())
+         )
 
             # 2. fallback по symbol
             if not token_data:
