@@ -68,9 +68,13 @@ class IntentParser:
     # ── Parsers ───────────────────────────────────────────────────────────
 
     def _parse_compare(self, text: str, tl: str) -> CompareIntent | None:
-        # "compare SOL and BONK" / "compare SOL BONK"
+        # Убираем предлоги перед парсингом
+        cleaned = re.sub(r'\b(to|with|and|и)\b', ' ', tl)
+        cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+
+        # "compare SOL BONK" / "compare SOL and BONK" / "compare SOL to BONK"
         match = re.search(
-            r'compare\s+(\w+)\s+(?:and|vs|versus|with|и)?\s*(\w+)', tl
+            r'compare\s+(\w+)\s+(\w+)', cleaned
         )
         if match:
             a_raw, b_raw = match.groups()
