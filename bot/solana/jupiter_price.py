@@ -37,7 +37,7 @@ class JupiterPriceClient:
             session = await self._get_session()
 
             # ✅ FIX: correct params format for v2
-            params = [("ids", mint)]
+            params = {"ids": mint}
 
             async with session.get(JUPITER_PRICE_URL, params=params) as resp:
                 if resp.status != 200:
@@ -76,7 +76,7 @@ class JupiterPriceClient:
             session = await self._get_session()
             
             # ✅ ИСПРАВЛЕНИЕ: Jupiter v2 требует повторяющиеся параметры для множественных ids
-            params = [("ids", mint) for mint in mints_map.values()]
+            params = {"ids": ",".join(mints_map.values())}
             
             logger.debug(f"Jupiter API request params: {params}")
 
