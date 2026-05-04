@@ -78,15 +78,31 @@ class JupiterPriceClient:
 
     def _parse_price(self, data: dict, symbol: str, mint: str) -> Optional[dict]:
         try:
-            token_data = data.get("data", {}).get(mint)
+            data_block = data.get("data", {})
+
+            # 1. Прямой поиск по mint
+            token_data = data_block.get(mint)
+
+            # 2. fallback по symbol
             if not token_data:
+                token_data = data_block.get(symbol)
+
+            # 3. fallback по lower symbol
+            if not token_data:
+                token_data = data_block.get(symbol.lower())
+
+            if not token_data:
+                logger.warning(f"No price data for {symbol} ({mint})")
                 return None
+
             price = float(token_data.get("price", 0))
+
             return {
                 "symbol": symbol,
                 "price_usd": price,
                 "mint": mint,
             }
+
         except Exception as e:
             logger.error(f"Error parsing price for {symbol}: {e}")
             return None
