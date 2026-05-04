@@ -96,11 +96,18 @@ class IntentDispatcher:
         )
 
     async def _handle_compare(self, intent: CompareIntent) -> DispatchResult:
+        logger.info("ENTER _handle_compare")
+
         if not intent.token_a or not intent.token_b:
             return DispatchResult(
                 text="❓ Example: <code>Compare SOL and BONK</code>", intent=intent,
             )
+
+        logger.info("CALLING get_prices")
         prices = await jupiter_price_client.get_prices([intent.token_a, intent.token_b])
+
+        logger.info(f"PRICES RESULT: {prices}")
+
         text = formatter.format_compare(
             intent.token_a, prices.get(intent.token_a),
             intent.token_b, prices.get(intent.token_b),
