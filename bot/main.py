@@ -17,7 +17,8 @@ from aiogram.fsm.storage.memory import MemoryStorage
 
 from bot.config import get_config
 from bot.handlers import start, intent_handler
-from bot.solana.jupiter import jupiter_client, jupiter_price_client
+from bot.solana.jupiter import jupiter_client
+from bot.solana.jupiter_price import jupiter_price_client
 
 
 def setup_logging(level: str = "INFO"):
