@@ -28,13 +28,16 @@ class JupiterPriceClient:
 
     async def get_price(self, symbol: str) -> Optional[dict]:
         mint = get_mint(symbol)
+
         if not mint:
             logger.warning(f"No mint for symbol: {symbol}")
             return None
 
         try:
             session = await self._get_session()
-            params = {"ids": mint}
+
+            # ✅ FIX: correct params format for v2
+            params = [("ids", mint)]
 
             async with session.get(JUPITER_PRICE_URL, params=params) as resp:
                 if resp.status != 200:
@@ -42,20 +45,19 @@ class JupiterPriceClient:
                     return None
 
                 data = await resp.json()
-                logger.info(f"Jupiter RAW response (MULTI): {data}")
 
-                # 👇 ВСТАВЬ СЮДА
                 logger.info(f"Jupiter RAW response for {symbol}: {data}")
 
                 if not data or not data.get("data"):
                     logger.warning(f"Empty Jupiter response: {data}")
-                    return None   # ⚠️ исправил (не {})
+                    return None
 
                 return self._parse_price(data, symbol, mint)
 
         except aiohttp.ClientError as e:
             logger.error(f"Jupiter Price API connection error: {e}")
             return None
+
         except Exception as e:
             logger.error(f"Unexpected error in price fetch: {e}", exc_info=True)
             return None
