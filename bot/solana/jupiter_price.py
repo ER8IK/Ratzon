@@ -63,32 +63,41 @@ class JupiterPriceClient:
             return None
 
     async def get_prices(self, symbols: list[str]) -> dict[str, Optional[dict]]:
-        mints = {}
+        mints_map = {}
         for s in symbols:
             m = get_mint(s)
             if m:
-                mints[s] = m
+                mints_map[s] = m
 
-        if not mints:
+        if not mints_map:
             return {}
 
         try:
             session = await self._get_session()
-            params = [("ids", m) for m in mints.values()]
+            
+            # ✅ ИСПРАВЛЕНИЕ: Jupiter v2 ждет ids через запятую: id1,id2,id3
+            ids_param = ",".join(mints_map.values())
+            params = {"ids": ids_param}
+
             async with session.get(JUPITER_PRICE_URL, params=params) as resp:
                 if resp.status != 200:
+                    error_text = await resp.text()
+                    logger.error(f"Jupiter API error {resp.status}: {error_text}")
                     return {}
+                
                 data = await resp.json()
+                logger.info(f"Jupiter Multiple RAW response: {data}")
 
             result = {}
-            for symbol, mint in mints.items():
+            for symbol, mint in mints_map.items():
+                # Передаем распарсенные данные в существующий метод
                 result[symbol] = self._parse_price(data, symbol, mint)
+            
             return result
 
         except Exception as e:
-            logger.error(f"Error fetching multiple prices: {e}")
+            logger.error(f"Error fetching multiple prices: {e}", exc_info=True)
             return {}
-
     def _parse_price(self, data: dict, symbol: str, mint: str) -> Optional[dict]:
         try:
             data_block = data.get("data", {})
