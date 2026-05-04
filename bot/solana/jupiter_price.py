@@ -35,14 +35,21 @@ class JupiterPriceClient:
         try:
             session = await self._get_session()
             params = {"ids": mint}
+
             async with session.get(JUPITER_PRICE_URL, params=params) as resp:
                 if resp.status != 200:
                     logger.error(f"Jupiter Price API error: {resp.status}")
                     return None
+
                 data = await resp.json()
+
+                # 👇 ВСТАВЬ СЮДА
+                logger.info(f"Jupiter RAW response for {symbol}: {data}")
+
                 if not data or not data.get("data"):
                     logger.warning(f"Empty Jupiter response: {data}")
-                    return {}
+                    return None   # ⚠️ исправил (не {})
+
                 return self._parse_price(data, symbol, mint)
 
         except aiohttp.ClientError as e:
