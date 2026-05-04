@@ -37,7 +37,7 @@ class JupiterPriceClient:
             session = await self._get_session()
 
             # ✅ FIX: correct params format for v2
-            params = {"ids": mint}
+            params = [("ids", mint)]
 
             async with session.get(JUPITER_PRICE_URL, params=params) as resp:
                 if resp.status != 200:
@@ -76,7 +76,7 @@ class JupiterPriceClient:
             session = await self._get_session()
             
             # ✅ ИСПРАВЛЕНИЕ: Jupiter v2 требует повторяющиеся параметры для множественных ids
-            params = {"ids": ",".join(mints_map.values())}
+            params = [("ids", mint) for mint in mints_map.values()]
             
             logger.debug(f"Jupiter API request params: {params}")
 
@@ -87,7 +87,8 @@ class JupiterPriceClient:
                     return {}
                 
                 data = await resp.json()
-                logger.info(f"Jupiter Multiple RAW response: {data}")
+
+            logger.info(f"Jupiter Multiple RAW response: {data}")
 
             if not data or not data.get("data"):
                 logger.warning(f"Empty Jupiter response for symbols {list(mints_map.keys())}: {data}")
@@ -104,6 +105,7 @@ class JupiterPriceClient:
         except Exception as e:
             logger.error(f"Error fetching multiple prices: {e}", exc_info=True)
             return {}
+
     def _parse_price(self, data: dict, symbol: str, mint: str) -> Optional[dict]:
         try:
             data_block = data.get("data", {})
