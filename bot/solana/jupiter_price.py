@@ -3,11 +3,14 @@ import logging
 from typing import Optional
 import aiohttp
 
+from bot.intents.models import SwapIntent
+from .jupiter import jupiter_client
 from .tokens import get_mint
 
 logger = logging.getLogger(__name__)
 
 JUPITER_PRICE_URL = "https://api.jup.ag/price/v2"
+JUPITER_PRICE_FALLBACK_OUTPUT = "USDC"
 
 
 class JupiterPriceClient:
@@ -36,10 +39,16 @@ class JupiterPriceClient:
         try:
             session = await self._get_session()
 
-            # ✅ FIX: correct params format for v2
+            # ✅ correct params format for v2
             params = [("ids", mint)]
 
             async with session.get(JUPITER_PRICE_URL, params=params) as resp:
+                if resp.status == 404:
+                    logger.warning(
+                        f"Jupiter Price API returned 404 for {symbol}; falling back to quote endpoint"
+                    )
+                    return await self._fetch_price_via_quote(symbol)
+
                 if resp.status != 200:
                     logger.error(f"Jupiter Price API error: {resp.status}")
                     return None
@@ -50,13 +59,13 @@ class JupiterPriceClient:
 
                 if not data or not data.get("data"):
                     logger.warning(f"Empty Jupiter response: {data}")
-                    return None
+                    return await self._fetch_price_via_quote(symbol)
 
                 return self._parse_price(data, symbol, mint)
 
         except aiohttp.ClientError as e:
             logger.error(f"Jupiter Price API connection error: {e}")
-            return None
+            return await self._fetch_price_via_quote(symbol)
 
         except Exception as e:
             logger.error(f"Unexpected error in price fetch: {e}", exc_info=True)
@@ -75,12 +84,18 @@ class JupiterPriceClient:
         try:
             session = await self._get_session()
             
-            # ✅ ИСПРАВЛЕНИЕ: Jupiter v2 требует повторяющиеся параметры для множественных ids
+            # Jupiter v2 требует повторяющиеся параметры для множественных ids
             params = [("ids", mint) for mint in mints_map.values()]
             
             logger.debug(f"Jupiter API request params: {params}")
 
             async with session.get(JUPITER_PRICE_URL, params=params) as resp:
+                if resp.status == 404:
+                    logger.warning(
+                        f"Jupiter Price API returned 404 for batch request; falling back to quote endpoint"
+                    )
+                    return await self._fetch_prices_via_quote(list(mints_map.keys()))
+
                 if resp.status != 200:
                     error_text = await resp.text()
                     logger.error(f"Jupiter API error {resp.status}: {error_text}")
@@ -92,7 +107,7 @@ class JupiterPriceClient:
 
             if not data or not data.get("data"):
                 logger.warning(f"Empty Jupiter response for symbols {list(mints_map.keys())}: {data}")
-                return {}
+                return await self._fetch_prices_via_quote(list(mints_map.keys()))
 
             result = {}
             for symbol, mint in mints_map.items():
@@ -102,6 +117,9 @@ class JupiterPriceClient:
             logger.info(f"Parsed prices result: {result}")
             return result
 
+        except aiohttp.ClientError as e:
+            logger.error(f"Jupiter Price API connection error: {e}")
+            return await self._fetch_prices_via_quote(list(mints_map.keys()))
         except Exception as e:
             logger.error(f"Error fetching multiple prices: {e}", exc_info=True)
             return {}
@@ -140,6 +158,38 @@ class JupiterPriceClient:
         except Exception as e:
             logger.error(f"Error parsing price for {symbol}: {e}")
             return None
+
+    async def _fetch_price_via_quote(self, symbol: str) -> Optional[dict]:
+        """Fallback: use Jupiter quote API to estimate token price in USDC."""
+        if symbol.upper() == JUPITER_PRICE_FALLBACK_OUTPUT:
+            mint = get_mint(symbol)
+            return {"symbol": symbol, "price_usd": 1.0, "mint": mint}
+
+        swap_intent = SwapIntent(
+            raw_text=f"price {symbol}",
+            amount=1.0,
+            input_token=symbol,
+            output_token=JUPITER_PRICE_FALLBACK_OUTPUT,
+            slippage_bps=50,
+        )
+
+        quote = await jupiter_client.get_quote(swap_intent)
+        if quote is None:
+            logger.warning(f"Quote fallback failed for {symbol}")
+            return None
+
+        mint = get_mint(symbol)
+        return {
+            "symbol": symbol,
+            "price_usd": quote.output_amount,
+            "mint": mint,
+        }
+
+    async def _fetch_prices_via_quote(self, symbols: list[str]) -> dict[str, Optional[dict]]:
+        result: dict[str, Optional[dict]] = {}
+        for symbol in symbols:
+            result[symbol] = await self._fetch_price_via_quote(symbol)
+        return result
 
 
 # Синглтон
