@@ -40,6 +40,9 @@ class JupiterPriceClient:
                     logger.error(f"Jupiter Price API error: {resp.status}")
                     return None
                 data = await resp.json()
+                if not data or not data.get("data"):
+                    logger.warning(f"Empty Jupiter response: {data}")
+                    return {}
                 return self._parse_price(data, symbol, mint)
 
         except aiohttp.ClientError as e:
@@ -82,12 +85,10 @@ class JupiterPriceClient:
 
             # 1. Прямой поиск по mint
             token_data = (
-            data_block.get(mint)
-            or data_block.get(mint.lower())
-            or data_block.get(mint.upper())
-            or data_block.get(symbol)
-            or data_block.get(symbol.lower())
-         )
+                data_block.get(mint)
+                or data_block.get(symbol)
+                or data_block.get(symbol.lower())
+            )
 
             # 2. fallback по symbol
             if not token_data:
