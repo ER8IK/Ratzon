@@ -1,4 +1,11 @@
 # bot/intents/parser.py
+"""
+Гибридный Intent Parser.
+
+Regex быстро → если confidence низкий → QVAC LLM.
+Лучшее из двух миров: скорость + интеллект.
+"""
+
 import re
 import logging
 from typing import Union
@@ -10,8 +17,9 @@ from .models import (
 from .patterns import (
     SWAP_KEYWORDS, SEND_KEYWORDS, BALANCE_KEYWORDS,
     PRICE_KEYWORDS, RATE_KEYWORDS, COMPARE_KEYWORDS,
-    normalize_token, AMOUNT_PATTERN
+    normalize_token,
 )
+from .llm_parser import llm_parser
 
 logger = logging.getLogger(__name__)
 
@@ -20,62 +28,90 @@ AnyIntent = Union[
     PriceIntent, RateIntent, CompareIntent, Intent
 ]
 
+# Если regex confidence ниже этого порога — идём в LLM
+LLM_THRESHOLD = 0.85
+
 
 class IntentParser:
 
-    def parse(self, text: str) -> AnyIntent:
+    async def parse(self, text: str) -> AnyIntent:
+        """
+        Главный метод парсинга.
+        Async потому что может вызывать QVAC LLM.
+        """
         t = text.strip()
         tl = t.lower()
         logger.debug(f"Parsing: {t!r}")
 
-        # COMPARE первым — иначе "compare" попадёт в PRICE через "how much"
+        # Шаг 1: быстрый regex
+        intent = self._parse_regex(t, tl)
+
+        # Шаг 2: если regex не уверен → QVAC LLM
+        if intent.confidence < LLM_THRESHOLD:
+            logger.info(
+                f"Regex confidence {intent.confidence:.2f} < {LLM_THRESHOLD}, "
+                f"trying QVAC LLM..."
+            )
+            llm_result = await llm_parser.parse(t)
+
+            if llm_result and llm_result.get("confidence", 0) > intent.confidence:
+                llm_intent = llm_parser.build_intent_from_llm(llm_result, t)
+                logger.info(
+                    f"LLM improved: {intent.intent_type} → {llm_intent.intent_type} "
+                    f"(conf: {llm_intent.confidence:.2f})"
+                )
+                return llm_intent
+
+        return intent
+
+    def parse_sync(self, text: str) -> AnyIntent:
+        """Синхронный парсинг только через regex (для /demo команды)."""
+        t = text.strip()
+        return self._parse_regex(t, t.lower())
+
+    # ── Regex парсер ─────────────────────────────────────────────────────────
+
+    def _parse_regex(self, text: str, tl: str) -> AnyIntent:
         if self._has_keywords(tl, COMPARE_KEYWORDS):
-            intent = self._parse_compare(t, tl)
+            intent = self._parse_compare(text, tl)
             if intent:
                 return intent
 
         if self._has_keywords(tl, SWAP_KEYWORDS):
-            intent = self._parse_swap(t, tl)
+            intent = self._parse_swap(text, tl)
             if intent:
                 return intent
 
         if self._has_keywords(tl, SEND_KEYWORDS):
-            intent = self._parse_send(t, tl)
+            intent = self._parse_send(text, tl)
             if intent:
                 return intent
 
         if self._has_keywords(tl, BALANCE_KEYWORDS):
-            return self._parse_balance(t, tl)
+            return self._parse_balance(text, tl)
 
         if self._has_keywords(tl, RATE_KEYWORDS):
-            intent = self._parse_rate(t, tl)
+            intent = self._parse_rate(text, tl)
             if intent:
                 return intent
 
         if self._has_keywords(tl, PRICE_KEYWORDS):
-            return self._parse_price(t, tl)
+            return self._parse_price(text, tl)
 
-        # Fallback: если есть известный токен — price intent
         token = self._extract_any_token(tl)
         if token:
             return PriceIntent(
-                raw_text=t, intent_type=IntentType.PRICE,
+                raw_text=text, intent_type=IntentType.PRICE,
                 confidence=0.5, token=token,
             )
 
-        return Intent(raw_text=t, intent_type=IntentType.UNKNOWN, confidence=0.0)
-
-    # ── Parsers ───────────────────────────────────────────────────────────
+        return Intent(raw_text=text, intent_type=IntentType.UNKNOWN, confidence=0.0)
 
     def _parse_compare(self, text: str, tl: str) -> CompareIntent | None:
-        # Убираем предлоги перед парсингом
         cleaned = re.sub(r'\b(to|with|and|и)\b', ' ', tl)
         cleaned = re.sub(r'\s+', ' ', cleaned).strip()
 
-        # "compare SOL BONK" / "compare SOL and BONK" / "compare SOL to BONK"
-        match = re.search(
-            r'compare\s+(\w+)\s+(\w+)', cleaned
-        )
+        match = re.search(r'compare\s+(\w+)\s+(\w+)', cleaned)
         if match:
             a_raw, b_raw = match.groups()
             token_a = normalize_token(a_raw)
@@ -87,7 +123,6 @@ class IntentParser:
                     token_b=token_b or b_raw.upper(),
                 )
 
-        # "SOL vs BONK" / "SOL versus BONK"
         match = re.search(r'(\w+)\s+(?:vs|versus|против)\s+(\w+)', tl)
         if match:
             a_raw, b_raw = match.groups()
@@ -153,17 +188,15 @@ class IntentParser:
         return None
 
     def _parse_balance(self, text: str, tl: str) -> BalanceIntent:
-        token = self._extract_any_token(tl)
         return BalanceIntent(
             raw_text=text, intent_type=IntentType.BALANCE,
-            confidence=0.85, token=token,
+            confidence=0.85, token=self._extract_any_token(tl),
         )
 
     def _parse_price(self, text: str, tl: str) -> PriceIntent:
-        token = self._extract_any_token(tl)
         return PriceIntent(
             raw_text=text, intent_type=IntentType.PRICE,
-            confidence=0.85, token=token,
+            confidence=0.85, token=self._extract_any_token(tl),
         )
 
     def _parse_rate(self, text: str, tl: str) -> RateIntent | None:
@@ -191,8 +224,7 @@ class IntentParser:
         return None
 
     def _extract_any_token(self, tl: str) -> str | None:
-        words = re.findall(r'\b\w+\b', tl)
-        for word in words:
+        for word in re.findall(r'\b\w+\b', tl):
             t = normalize_token(word)
             if t:
                 return t
