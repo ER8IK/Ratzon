@@ -1,0 +1,54 @@
+version: "3.9"
+
+services:
+  # QVAC Local AI Service (Node.js)
+  qvac:
+    build:
+      context: ./qvac_service
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - QVAC_PORT=3000
+    volumes:
+      - qvac_models:/root/.qvac  # кэш моделей
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Python Telegram Bot + API Server
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.bot
+    ports:
+      - "8080:8080"
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
+      - SOLANA_RPC_URL=${SOLANA_RPC_URL}
+      - QVAC_URL=http://qvac:3000
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    depends_on:
+      qvac:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Next.js Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "4000:4000"
+    environment:
+      - BOT_API_URL=http://bot:8080
+      - QVAC_URL=http://qvac:3000
+    depends_on:
+      - bot
+    restart: unless-stopped
+
+volumes:
+  qvac_models:
