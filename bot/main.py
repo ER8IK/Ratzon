@@ -14,7 +14,7 @@ from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.storage.memory import MemoryStorage
 
-from bot.config import get_config
+from config import get_config
 from bot.handlers import start, intent_handler
 from bot.solana.jupiter import jupiter_client
 from bot.solana.jupiter_price import jupiter_price_client
