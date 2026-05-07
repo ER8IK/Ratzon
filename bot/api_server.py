@@ -89,8 +89,13 @@ def create_app() -> web.Application:
     app.router.add_get("/health", handle_health)
 
     # CORS для фронтенда
+    @web.middleware
     async def cors_middleware(request, handler):
-        response = await handler(request)
+        if request.method == "OPTIONS":
+            response = web.Response()
+        else:
+            response = await handler(request)
+
         response.headers["Access-Control-Allow-Origin"] = "*"
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
         response.headers["Access-Control-Allow-Headers"] = "Content-Type"
