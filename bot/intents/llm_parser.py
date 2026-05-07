@@ -11,6 +11,7 @@
 """
 
 import logging
+import os
 import aiohttp
 from typing import Optional
 
@@ -22,7 +23,7 @@ from .patterns import normalize_token
 
 logger = logging.getLogger(__name__)
 
-QVAC_URL = "http://localhost:3000"
+QVAC_URL = os.getenv("QVAC_URL", "http://localhost:3000")
 QVAC_TIMEOUT = aiohttp.ClientTimeout(total=15)  # LLM медленнее regex
 
 
