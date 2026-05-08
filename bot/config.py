@@ -28,12 +28,24 @@ class Config:
     frontend_port: int = 4000
     frontend_dir: str = "frontend"
     frontend_command: str = ""
+    frontend_mode: str = "auto"
+    web_app_url: str = ""
+    api_port: int = 8080
 
     @classmethod
     def from_env(cls) -> "Config":
         token = os.getenv("BOT_TOKEN")
         if not token:
             raise ValueError("BOT_TOKEN environment variable is required")
+
+        api_port = int(os.getenv("BOT_API_PORT", os.getenv("API_PORT", "8080")))
+        frontend_port = int(os.getenv("FRONTEND_PORT") or os.getenv("PORT") or "4000")
+        if (
+            frontend_port == api_port
+            and "BOT_API_PORT" not in os.environ
+            and "API_PORT" not in os.environ
+        ):
+            api_port = 8081 if frontend_port == 8080 else 8080
 
         return cls(
             bot_token=token,
@@ -48,9 +60,18 @@ class Config:
             ),
             start_frontend_with_bot=_env_bool("START_FRONTEND_WITH_BOT", True),
             frontend_host=os.getenv("FRONTEND_HOST", "0.0.0.0"),
-            frontend_port=int(os.getenv("FRONTEND_PORT", "4000")),
+            frontend_port=frontend_port,
             frontend_dir=os.getenv("FRONTEND_DIR", "frontend"),
             frontend_command=os.getenv("FRONTEND_COMMAND", ""),
+            frontend_mode=os.getenv("FRONTEND_MODE", "auto").strip().lower(),
+            web_app_url=_env_url(
+                "WEB_APP_URL",
+                "TELEGRAM_WEB_APP_URL",
+                "FRONTEND_PUBLIC_URL",
+                "FRONTEND_URL",
+                "RAILWAY_PUBLIC_DOMAIN",
+            ),
+            api_port=api_port,
         )
 
 
@@ -70,3 +91,20 @@ def _env_bool(name: str, default: bool) -> bool:
     if value is None:
         return default
     return value.strip().lower() not in {"0", "false", "no", "off"}
+
+
+def _env_url(*names: str) -> str:
+    for name in names:
+        value = os.getenv(name)
+        if value:
+            return _normalize_url(value)
+    return ""
+
+
+def _normalize_url(value: str) -> str:
+    value = value.strip().rstrip("/")
+    if not value:
+        return ""
+    if value.startswith(("http://", "https://")):
+        return value
+    return f"https://{value}"
