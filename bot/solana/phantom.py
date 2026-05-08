@@ -30,13 +30,9 @@ def build_phantom_deeplink(
         "redirect_link": redirect_url,
     })
 
-    # Use the Phantom app URL scheme when possible so the payload opens directly in Phantom.
-    # If the user’s device does not support the custom scheme, the https universal link
-    # below is the fallback path handled by the browser.
-    app_link = f"phantom://app/ul/v1/signAndSendTransaction?{params}"
-    web_link = f"https://phantom.app/ul/v1/signAndSendTransaction?{params}"
-
-    return app_link if app_link else web_link
+    # Для inline-кнопки Telegram нужно использовать https universal link.
+    # Phantom app scheme (`phantom://`) не поддерживается в URL-кнопках Telegram.
+    return f"https://phantom.app/ul/v1/signAndSendTransaction?{params}"
 
 
 def build_solflare_deeplink(transaction_b64: str) -> str:
