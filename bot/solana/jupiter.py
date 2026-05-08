@@ -82,7 +82,7 @@ class JupiterClient:
                     return None
 
                 data = await resp.json()
-                return self._parse_quote(data, intent)
+                return self._parse_quote(data, intent), data
 
         except aiohttp.ClientError as e:
             logger.error(f"Jupiter API connection error: {e}")

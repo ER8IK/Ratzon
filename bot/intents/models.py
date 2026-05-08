@@ -116,7 +116,6 @@ class QuoteResult:
     price_impact_pct: float
     route_label:      str
     fees_sol:         float
-    raw_response:     dict = field(default_factory=dict)
 
     @property
     def price_impact_display(self) -> str:

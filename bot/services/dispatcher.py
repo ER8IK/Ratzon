@@ -51,7 +51,7 @@ class IntentDispatcher:
             return DispatchResult(
                 text=formatter.format_parse_error(intent), intent=intent,
             )
-        quote = await jupiter_client.get_quote(intent)
+        quote, raw = await jupiter_client.get_quote(intent)
         if quote is None:
             return DispatchResult(
                 text=formatter.format_no_route(intent), intent=intent,
@@ -60,7 +60,7 @@ class IntentDispatcher:
         return DispatchResult(
             text=formatter.format_swap_response(intent, quote, risk),
             show_confirm_button=True,
-            intent=intent, quote=quote, risk=risk, quote_raw=quote.raw_response,
+            intent=intent, quote=quote, risk=risk, quote_raw=raw,
         )
 
     async def _handle_price(self, intent: PriceIntent) -> DispatchResult:
