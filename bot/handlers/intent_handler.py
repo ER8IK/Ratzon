@@ -6,6 +6,7 @@
 
 import logging
 import io
+import re
 
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
@@ -22,6 +23,39 @@ router = Router()
 
 
 # ── Text messages ─────────────────────────────────────────────────────────────
+
+@router.message(F.text & F.state == "waiting_for_wallet")
+async def handle_wallet_entry(message: Message, state: FSMContext):
+    wallet_address = message.text.strip()
+    user_id = message.from_user.id
+    logger.info(f"User {user_id}: wallet entry received")
+
+    await message.bot.send_chat_action(message.chat.id, "typing")
+
+    data = await state.get_data()
+    if not data.get("pending_intent") or not data.get("pending_quote_raw"):
+        await message.answer(
+            "⚠️ No pending swap found. Send your swap request again.",
+            parse_mode="HTML",
+        )
+        await state.clear()
+        return
+
+    if not _is_valid_wallet(wallet_address):
+        await message.answer(
+            "❌ Invalid wallet address. Please send a valid Solana wallet address.",
+            parse_mode="HTML",
+        )
+        return
+
+    await state.update_data(user_wallet=wallet_address)
+
+    await message.answer(
+        "✅ Wallet address saved. Now click <b>Confirm Swap</b> in the previous message to continue.",
+        parse_mode="HTML",
+        reply_markup=_confirm_keyboard(),
+    )
+
 
 @router.message(F.text & ~F.text.startswith("/"))
 async def handle_intent(message: Message, state: FSMContext):
@@ -234,6 +268,11 @@ def _serialize_intent(intent) -> dict:
         "output_token": intent.output_token,
         "slippage_bps": getattr(intent, "slippage_bps", 50),
     }
+
+
+def _is_valid_wallet(address: str) -> bool:
+    # Простая проверка Solana адреса: base58 строка длиной 32-44 символа.
+    return bool(re.fullmatch(r"[1-9A-HJ-NP-Za-km-z]{32,44}", address))
 
 
 def _deserialize_intent(data: dict) -> SwapIntent:
