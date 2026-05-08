@@ -26,7 +26,11 @@ router = Router()
 
 @router.message(F.text & F.state == "waiting_for_wallet")
 async def handle_wallet_entry(message: Message, state: FSMContext):
-    wallet_address = message.text.strip()
+    user_text = message.text.strip()
+    await _process_wallet_entry(message, state, user_text)
+
+
+async def _process_wallet_entry(message: Message, state: FSMContext, wallet_address: str):
     user_id = message.from_user.id
     logger.info(f"User {user_id}: wallet entry received")
 
@@ -64,6 +68,12 @@ async def handle_intent(message: Message, state: FSMContext):
     logger.info(f"User {user_id}: {user_text!r}")
 
     await message.bot.send_chat_action(message.chat.id, "typing")
+
+    current_state = await state.get_state()
+    if current_state == "waiting_for_wallet":
+        logger.info(f"User {user_id}: handling wallet entry in state {current_state}")
+        await _process_wallet_entry(message, state, user_text)
+        return
 
     # Гибридный парсер: regex → QVAC LLM если нужно
     intent = await intent_parser.parse(user_text)
