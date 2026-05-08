@@ -85,7 +85,9 @@ function buildPhantomBrowseUrl() {
 
 async function connectInjectedPhantom(provider: any) {
   const connection = await provider.connect();
-  return connection?.publicKey?.toString?.() || provider.publicKey?.toString?.();
+  return (
+    connection?.publicKey?.toString?.() || provider.publicKey?.toString?.()
+  );
 }
 
 async function signWithInjectedPhantom(provider: any, transaction: string) {
@@ -94,7 +96,11 @@ async function signWithInjectedPhantom(provider: any, transaction: string) {
     decodeBase64Transaction(transaction),
   );
   const result = await provider.signAndSendTransaction(versionedTransaction);
-  return result?.signature || result?.hash || (typeof result === "string" ? result : null);
+  return (
+    result?.signature ||
+    result?.hash ||
+    (typeof result === "string" ? result : null)
+  );
 }
 
 export default function Home() {
@@ -196,7 +202,10 @@ export default function Home() {
       setPhantomUrl(data.phantom_url);
 
       if (provider && data.transaction) {
-        const signature = await signWithInjectedPhantom(provider, data.transaction);
+        const signature = await signWithInjectedPhantom(
+          provider,
+          data.transaction,
+        );
         if (signature) {
           setTxSignature(signature);
           return;
@@ -205,7 +214,9 @@ export default function Home() {
       }
 
       if (isMobileDevice()) {
-        window.location.assign(data.phantom_browse_url || buildPhantomBrowseUrl());
+        window.location.assign(
+          data.phantom_browse_url || buildPhantomBrowseUrl(),
+        );
         return;
       }
 
@@ -224,11 +235,11 @@ export default function Home() {
       <header className="sticky top-0 z-20 border-b border-[#202a2e] bg-[#080b0d]/90 px-4 py-4 backdrop-blur-xl sm:px-6">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 md:flex-row md:items-center">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#111] overflow-hidden shadow-[0_10px_28px_rgba(0,0,0,0.18)]">
+            <div className="flex items-center justify-center rounded-xl bg-white/5 p-2 backdrop-blur-md shadow-lg">
               <img
                 src="/Ratzon_logo-removebg-preview.png"
                 alt="Ratzon logo"
-                className="h-11 w-11 object-contain"
+                className="h-12 w-12 object-contain"
               />
             </div>
             <div>
@@ -271,7 +282,8 @@ export default function Home() {
                     Ratzon
                   </h1>
                   <p className="mt-3 max-w-xl text-sm leading-6 text-[#a8b4b8] sm:text-base">
-                    Describe a Solana action, review the route, then hand the prepared transaction to Phantom.
+                    Describe a Solana action, review the route, then hand the
+                    prepared transaction to Phantom.
                   </p>
                 </div>
                 <div className="inline-flex w-fit items-center gap-2 rounded-full border border-[#263237] bg-[#151d20] px-3 py-2 text-xs font-medium text-[#c2cbce]">
@@ -315,7 +327,8 @@ export default function Home() {
                   </div>
                 </div>
                 <div className="mt-5 rounded-xl border border-[#263237] bg-[#0d1214] px-4 py-3 text-xs leading-5 text-[#9aa7ab]">
-                  The wallet address is only used to prepare the transaction link.
+                  The wallet address is only used to prepare the transaction
+                  link.
                 </div>
               </div>
             </div>
@@ -367,9 +380,14 @@ export default function Home() {
 
             <div className="divide-y divide-white/10 px-5 py-2">
               {ROUTE_ROWS.map(([label, value]) => (
-                <div key={label} className="flex items-center justify-between gap-4 py-4 text-sm">
+                <div
+                  key={label}
+                  className="flex items-center justify-between gap-4 py-4 text-sm"
+                >
                   <span className="text-[#8d9a9f]">{label}</span>
-                  <span className="text-right font-medium text-white">{value}</span>
+                  <span className="text-right font-medium text-white">
+                    {value}
+                  </span>
                 </div>
               ))}
             </div>
