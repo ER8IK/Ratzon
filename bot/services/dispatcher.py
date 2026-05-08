@@ -22,6 +22,7 @@ class DispatchResult:
     intent: AnyIntent = None
     quote: QuoteResult = None
     risk: RiskReport = None
+    quote_raw: dict = None
 
 
 class IntentDispatcher:
@@ -59,7 +60,7 @@ class IntentDispatcher:
         return DispatchResult(
             text=formatter.format_swap_response(intent, quote, risk),
             show_confirm_button=True,
-            intent=intent, quote=quote, risk=risk,
+            intent=intent, quote=quote, risk=risk, quote_raw=quote.raw_response,
         )
 
     async def _handle_price(self, intent: PriceIntent) -> DispatchResult:

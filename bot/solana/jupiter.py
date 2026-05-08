@@ -17,13 +17,13 @@ from bot.intents.models import QuoteResult, SwapIntent
 logger = logging.getLogger(__name__)
 
 JUPITER_QUOTE_URL = "https://api.jup.ag/swap/v1/quote"
-JUPITER_SWAP_URL = "https://quote-api.jup.ag/v6/swap"  # для будущего использования
+JUPITER_SWAP_URL = "https://api.jup.ag/swap/v1/swap"
 
 
 class JupiterClient:
     """
     Клиент для Jupiter Aggregator API.
-    
+
     Только quote (не swap) для MVP — реальные данные без подписи.
     """
 
@@ -44,7 +44,7 @@ class JupiterClient:
     async def get_quote(self, intent: SwapIntent) -> QuoteResult | None:
         """
         Получает лучшую котировку для swap от Jupiter.
-        
+
         Returns:
             QuoteResult с данными маршрута, или None если маршрут не найден.
         """
@@ -91,13 +91,51 @@ class JupiterClient:
             logger.error(f"Unexpected error in Jupiter quote: {e}", exc_info=True)
             return None
 
+    async def get_swap_transaction(
+        self,
+        quote_response: dict,
+        user_wallet: str,
+    ) -> str | None:
+        """
+        Получает готовую (неподписанную) транзакцию от Jupiter.
+
+        Returns:
+            base64-encoded transaction string
+        """
+        payload = {
+            "quoteResponse": quote_response,
+            "userPublicKey": user_wallet,
+            "wrapAndUnwrapSol": True,
+            "dynamicComputeUnitLimit": True,
+            "prioritizationFeeLamports": "auto",
+        }
+
+        try:
+            session = await self._get_session()
+            async with session.post(
+                JUPITER_SWAP_URL,
+                json=payload,
+            ) as resp:
+                if resp.status != 200:
+                    body = await resp.text()
+                    logger.error(f"Jupiter swap tx error {resp.status}: {body}")
+                    return None
+
+                data = await resp.json()
+                # Jupiter возвращает base64 транзакцию
+                return data.get("swapTransaction")
+
+        except Exception as e:
+            logger.error(f"Error getting swap transaction: {e}")
+            return None
+
     def _parse_quote(self, data: dict, intent: SwapIntent) -> QuoteResult:
         """Преобразует сырой ответ Jupiter → QuoteResult"""
 
         # Jupiter возвращает outAmount в наименьших единицах
         out_amount_raw = int(data.get("outAmount", 0))
         out_decimals = get_decimals(intent.output_token)
-        out_amount = out_amount_raw / (10 ** out_decimals)
+        out_amount = out_amount_raw / (10**out_decimals)
 
         # Цена воздействия (priceImpactPct — строка типа "0.001")
         price_impact_raw = data.get("priceImpactPct", "0")
@@ -129,18 +167,18 @@ class JupiterClient:
         Пример: "SOL → Raydium → USDC"
         """
         route_plan = data.get("routePlan", [])
-        
+
         if not route_plan:
             return f"{intent.input_token} → {intent.output_token}"
 
         parts = [intent.input_token]
         seen_mints = set()
-        
+
         for leg in route_plan:
             swap_info = leg.get("swapInfo", {})
             amm_label = swap_info.get("label", "DEX")
             out_mint = swap_info.get("outputMint", "")
-            
+
             # Не дублируем
             if out_mint not in seen_mints:
                 seen_mints.add(out_mint)
@@ -154,6 +192,7 @@ class JupiterClient:
     def _mint_to_symbol(self, mint: str, fallback: str) -> str:
         """Обратное преобразование mint → symbol для красивого отображения маршрута."""
         from .tokens import TOKEN_MINTS
+
         for symbol, m in TOKEN_MINTS.items():
             if m == mint:
                 return symbol

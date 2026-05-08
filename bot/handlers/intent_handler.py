@@ -45,6 +45,7 @@ async def handle_intent(message: Message, state: FSMContext):
         await state.update_data(
             pending_intent=_serialize_intent(result.intent),
             pending_quote=_serialize_quote(result.quote),
+            pending_quote_raw=result.quote_raw,
         )
         keyboard = _confirm_keyboard()
 
@@ -135,21 +136,74 @@ async def handle_confirm_swap(callback: CallbackQuery, state: FSMContext):
 
     data = await state.get_data()
     intent_data = data.get("pending_intent")
-    quote_data = data.get("pending_quote")
+    quote_raw = data.get("pending_quote_raw")  # сырой ответ Jupiter
+    user_wallet = data.get("user_wallet")
 
-    if not intent_data or not quote_data:
+    if not intent_data or not quote_raw:
         await callback.message.edit_text(
-            "⚠️ Session expired. Please send your swap request again."
+            "⚠️ Session expired. Send your swap request again."
         )
         return
 
-    intent = _deserialize_intent(intent_data)
-    quote = _deserialize_quote(quote_data)
+    # Если кошелька нет — просим его ввести
+    if not user_wallet:
+        await callback.message.edit_text(
+            "🔑 <b>Enter your wallet address to continue:</b>\n\n"
+            "Send your Solana wallet address and I'll prepare the transaction.\n\n"
+            "<i>Your funds stay in your wallet — Ratzon never holds your keys.</i>",
+            parse_mode="HTML",
+        )
+        await state.set_state("waiting_for_wallet")
+        return
 
-    mock_result = format_mock_execute_result(intent, quote)
+    # Получаем swap транзакцию от Jupiter
     await callback.message.edit_text(
-        mock_result, parse_mode="HTML", disable_web_page_preview=True,
+        "⏳ <b>Preparing transaction...</b>",
+        parse_mode="HTML",
     )
+
+    from bot.solana.jupiter import jupiter_client
+    from bot.solana.phantom import build_phantom_deeplink, build_solflare_deeplink
+
+    tx_b64 = await jupiter_client.get_swap_transaction(
+        quote_response=quote_raw,
+        user_wallet=user_wallet,
+    )
+
+    if not tx_b64:
+        await callback.message.edit_text(
+            "❌ <b>Failed to prepare transaction.</b>\n\n"
+            "Please try again.",
+            parse_mode="HTML",
+        )
+        return
+
+    # Строим deeplink
+    phantom_url = build_phantom_deeplink(tx_b64)
+    intent = _deserialize_intent(intent_data)
+
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(
+            text="👻 Open in Phantom",
+            url=phantom_url,
+        ),
+        InlineKeyboardButton(
+            text="🌊 Open in Solflare",
+            url=build_solflare_deeplink(tx_b64),
+        ),
+    ]])
+
+    await callback.message.edit_text(
+        f"✅ <b>Transaction Ready</b>\n\n"
+        f"Swap <b>{intent.amount:g} {intent.input_token}</b> → "
+        f"<b>{intent.output_token}</b>\n\n"
+        f"Click the button to open your wallet and approve.\n\n"
+        f"<i>⚠️ Always verify the transaction details in your wallet before approving.</i>",
+        parse_mode="HTML",
+        reply_markup=keyboard,
+    )
+
     await state.clear()
 
 
