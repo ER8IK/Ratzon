@@ -222,8 +222,12 @@ export default function Home() {
       <header className="sticky top-0 z-20 border-b border-[#202a2e] bg-[#080b0d]/90 px-4 py-4 backdrop-blur-xl sm:px-6">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 md:flex-row md:items-center">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#ff353b] text-lg font-black text-white shadow-[0_10px_28px_rgba(255,53,59,0.24)]">
-              R
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#111] overflow-hidden shadow-[0_10px_28px_rgba(0,0,0,0.18)]">
+              <img
+                src="/Ratzon_logo-removebg-preview.png"
+                alt="Ratzon logo"
+                className="h-11 w-11 object-contain"
+              />
             </div>
             <div>
               <p className="text-base font-semibold tracking-[0.18em] text-white">
