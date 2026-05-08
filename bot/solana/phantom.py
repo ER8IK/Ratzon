@@ -27,7 +27,7 @@ def build_phantom_deeplink(
     """
     params = urllib.parse.urlencode({
         "transaction": transaction_b64,
-        "redirectLink": redirect_url,
+        "redirect_link": redirect_url,
     })
 
     return f"https://phantom.app/ul/v1/signAndSendTransaction?{params}"
