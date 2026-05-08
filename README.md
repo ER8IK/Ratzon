@@ -80,6 +80,7 @@ node server.js
 ```bash
 cp .env.example .env
 # Add your BOT_TOKEN to .env
+# Set WEB_APP_URL to your public HTTPS frontend URL for Telegram Mini App buttons
 
 pip install -r requirements.txt
 python -m bot.main
@@ -97,6 +98,26 @@ npm run dev
 ```
 
 Set `START_FRONTEND_WITH_BOT=false` if you want to run the frontend as a separate process.
+
+### Telegram Mini App / Railway
+
+`/start` can show a Telegram WebApp button, but Telegram does not auto-open a Mini App from a command. The user must tap the button or use the bot menu button.
+
+For Railway, set these variables on the bot service:
+
+```bash
+BOT_TOKEN=...
+WEB_APP_URL=https://your-frontend.up.railway.app
+START_FRONTEND_WITH_BOT=true
+FRONTEND_HOST=0.0.0.0
+# Leave FRONTEND_PORT empty on Railway so the app uses Railway's PORT automatically.
+FRONTEND_MODE=auto
+BOT_API_PORT=8080
+```
+
+If the frontend is deployed as a separate Railway service, set `WEB_APP_URL` to that frontend service URL. If the bot starts the frontend in the same service, use that service's public Railway URL.
+
+The included `nixpacks.toml` installs both Python and frontend dependencies, builds Next.js, and starts the bot with `python -m bot.main`. In Railway/production, the bot starts the built frontend with `next start`; locally it keeps using `next dev`.
 
 ### Or: Docker Compose (все сервисы одной командой)
 

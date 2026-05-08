@@ -17,6 +17,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.types import MenuButtonWebApp, WebAppInfo
 
 from bot.config import get_config
 from bot.handlers import start, intent_handler
@@ -60,7 +61,7 @@ async def start_frontend_process(cfg, logger: logging.Logger):
         return None
 
     env = os.environ.copy()
-    env.setdefault("BOT_API_URL", "http://localhost:8080")
+    env.setdefault("BOT_API_URL", f"http://localhost:{cfg.api_port}")
 
     logger.info("Starting frontend: %s", " ".join(command))
     try:
@@ -76,13 +77,15 @@ async def start_frontend_process(cfg, logger: logging.Logger):
 
 def _resolve_frontend_command(cfg, frontend_dir: Path) -> list[str] | None:
     if cfg.frontend_command:
-        return shlex.split(cfg.frontend_command)
+        return shlex.split(os.path.expandvars(cfg.frontend_command))
+
+    frontend_mode = _resolve_frontend_mode(cfg, frontend_dir)
 
     next_bin = frontend_dir / "node_modules" / ".bin" / "next"
     if next_bin.exists():
         return [
             str(next_bin),
-            "dev",
+            frontend_mode,
             "--hostname",
             cfg.frontend_host,
             "--port",
@@ -93,7 +96,7 @@ def _resolve_frontend_command(cfg, frontend_dir: Path) -> list[str] | None:
         return [
             "corepack",
             "pnpm",
-            "dev",
+            frontend_mode,
             "--",
             "--hostname",
             cfg.frontend_host,
@@ -105,7 +108,7 @@ def _resolve_frontend_command(cfg, frontend_dir: Path) -> list[str] | None:
         return [
             "npm",
             "run",
-            "dev",
+            frontend_mode,
             "--",
             "--hostname",
             cfg.frontend_host,
@@ -114,6 +117,20 @@ def _resolve_frontend_command(cfg, frontend_dir: Path) -> list[str] | None:
         ]
 
     return None
+
+
+def _resolve_frontend_mode(cfg, frontend_dir: Path) -> str:
+    if cfg.frontend_mode in {"dev", "start"}:
+        return cfg.frontend_mode
+
+    has_production_build = (frontend_dir / ".next" / "BUILD_ID").exists()
+    is_production_runtime = (
+        os.getenv("NODE_ENV") == "production"
+        or bool(os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RAILWAY_PROJECT_ID"))
+    )
+    if has_production_build and is_production_runtime:
+        return "start"
+    return "dev"
 
 
 async def _is_port_open(host: str, port: int) -> bool:
@@ -141,6 +158,26 @@ async def stop_frontend_process(process, logger: logging.Logger):
         await process.wait()
 
 
+async def configure_telegram_web_app(bot: Bot, cfg, logger: logging.Logger):
+    if not cfg.web_app_url:
+        logger.warning(
+            "Telegram WebApp URL is not configured. "
+            "Set WEB_APP_URL to the public HTTPS frontend URL."
+        )
+        return
+
+    try:
+        await bot.set_chat_menu_button(
+            menu_button=MenuButtonWebApp(
+                text="Open Ratzon",
+                web_app=WebAppInfo(url=cfg.web_app_url),
+            )
+        )
+        logger.info("Telegram WebApp menu button configured: %s", cfg.web_app_url)
+    except Exception:
+        logger.warning("Failed to configure Telegram WebApp menu button.", exc_info=True)
+
+
 async def main():
     cfg = get_config()
     setup_logging(cfg.log_level)
@@ -155,9 +192,10 @@ async def main():
     dp = Dispatcher(storage=MemoryStorage())
     dp.include_router(start.router)
     dp.include_router(intent_handler.router)
+    await configure_telegram_web_app(bot, cfg, logger)
 
-    # HTTP API для фронтенда (порт 8080)
-    api_runner = await start_api_server(port=8080)
+    # HTTP API для frontend server routes.
+    api_runner = await start_api_server(port=cfg.api_port)
     frontend_process = await start_frontend_process(cfg, logger)
 
     # Проверяем QVAC

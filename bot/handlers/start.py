@@ -8,9 +8,10 @@ import asyncio
 import logging
 
 from aiogram import Router
-from aiogram.types import Message
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, WebAppInfo
 from aiogram.filters import Command
 
+from bot.config import get_config
 from bot.intents.parser import intent_parser
 from bot.services.dispatcher import intent_dispatcher
 
@@ -82,6 +83,7 @@ async def cmd_start(message: Message):
     await message.answer(
         f"👋 Hey <b>{name}</b>!\n\n" + WELCOME_MESSAGE,
         parse_mode="HTML",
+        reply_markup=_web_app_keyboard(),
     )
 
 
@@ -92,11 +94,14 @@ async def cmd_help(message: Message):
 
 @router.message(Command("status"))
 async def cmd_status(message: Message):
+    cfg = get_config()
+    web_app_status = "Configured" if cfg.web_app_url else "Not configured"
     await message.answer(
         "🟢 <b>System Status</b>\n\n"
         "• Intent Parser:   <b>Online</b>\n"
         "• Jupiter API:     <b>Online</b>\n"
         "• Risk Engine:     <b>Online</b>\n"
+        f"• Web App:         <b>{web_app_status}</b>\n"
         "• Execution:       <b>Demo Mode</b>\n\n"
         "<i>Ratzon v0.2.0 — Intent Layer for Solana</i>",
         parse_mode="HTML",
@@ -131,7 +136,7 @@ async def cmd_demo(message: Message):
         await message.bot.send_chat_action(message.chat.id, "typing")
         await asyncio.sleep(1.2)
 
-        intent = intent_parser.parse(text)
+        intent = intent_parser.parse_sync(text)
         result = await intent_dispatcher.dispatch(intent)
 
         await message.answer(
@@ -148,3 +153,16 @@ async def cmd_demo(message: Message):
         "<code>Swap 1 SOL to USDC</code>",
         parse_mode="HTML",
     )
+
+
+def _web_app_keyboard() -> InlineKeyboardMarkup | None:
+    web_app_url = get_config().web_app_url
+    if not web_app_url:
+        return None
+
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(
+            text="Open Ratzon App",
+            web_app=WebAppInfo(url=web_app_url),
+        ),
+    ]])
