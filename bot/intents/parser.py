@@ -46,21 +46,23 @@ class IntentParser:
         # Шаг 1: быстрый regex
         intent = self._parse_regex(t, tl)
 
-        # Шаг 2: если regex не уверен → QVAC LLM
-        if intent.confidence < LLM_THRESHOLD:
-            logger.info(
-                f"Regex confidence {intent.confidence:.2f} < {LLM_THRESHOLD}, "
-                f"trying QVAC LLM..."
-            )
-            llm_result = await llm_parser.parse(t)
+        # Если regex нашёл конкретный intent — используем его сразу.
+        # LLM только fallback на неизвестные или некорректные результаты.
+        if intent.intent_type != IntentType.UNKNOWN:
+            if isinstance(intent, (SwapIntent, SendIntent)) and not intent.is_valid():
+                logger.info("Regex returned incomplete intent, trying LLM fallback...")
+            else:
+                return intent
 
-            if llm_result and llm_result.get("confidence", 0) > intent.confidence:
-                llm_intent = llm_parser.build_intent_from_llm(llm_result, t)
-                logger.info(
-                    f"LLM improved: {intent.intent_type} → {llm_intent.intent_type} "
-                    f"(conf: {llm_intent.confidence:.2f})"
-                )
-                return llm_intent
+        # Шаг 2: если regex не определил intent или он неполон → QVAC LLM
+        llm_result = await llm_parser.parse(t)
+        if llm_result:
+            llm_intent = llm_parser.build_intent_from_llm(llm_result, t)
+            logger.info(
+                f"LLM fallback: {intent.intent_type} -> {llm_intent.intent_type} "
+                f"(conf: {llm_intent.confidence:.2f})"
+            )
+            return llm_intent
 
         return intent
 
