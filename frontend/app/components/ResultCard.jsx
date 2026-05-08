@@ -1,5 +1,19 @@
 "use client";
 
+import {
+  AlertTriangle,
+  ArrowRight,
+  ExternalLink,
+  Fuel,
+  Gauge,
+  Loader2,
+  RefreshCcw,
+  Route,
+  ShieldCheck,
+  TrendingDown,
+  Wallet,
+} from "lucide-react";
+
 export default function ResultCard({
   result,
   wallet,
@@ -14,121 +28,196 @@ export default function ResultCard({
 
   const { intent, quote, risk } = result;
 
-  const riskColor = {
-    low: "#00CC44",
-    medium: "#FFAA00",
-    high: "#FF4444",
-    critical: "#FF0000",
-  }[risk?.level?.toLowerCase()] || "#888";
+  const riskLevel = risk?.level?.toLowerCase() || "unknown";
+  const riskTone =
+    {
+      low: "bg-[#0d2a1d] text-[#70e1a6] border-[#1f6d4b]",
+      medium: "bg-[#2d230b] text-[#ffd36a] border-[#766024]",
+      high: "bg-[#321710] text-[#ff9c84] border-[#7a3a2d]",
+      critical: "bg-[#341113] text-[#ffb8ba] border-[#7a2b30]",
+    }[riskLevel] || "bg-[#151d20] text-[#9aa7ab] border-[#263237]";
 
-  const impactEmoji =
-    quote?.price_impact_pct < 0.1 ? "🟢"
-    : quote?.price_impact_pct < 1.0 ? "🟡"
-    : quote?.price_impact_pct < 3.0 ? "🟠"
-    : "🔴";
+  const outputAmount = Number(quote?.output_amount);
+  const priceImpact = Number(quote?.price_impact_pct);
+  const routeScore = quote?.route_score;
+  const formattedOutput = Number.isFinite(outputAmount)
+    ? outputAmount.toLocaleString(undefined, { maximumFractionDigits: 4 })
+    : "--";
+  const formattedImpact = Number.isFinite(priceImpact)
+    ? `${priceImpact.toFixed(4)}%`
+    : "--";
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-[28px] border border-[#222] bg-[#0F0F0F] p-6">
-        <div className="flex items-center justify-between gap-4 mb-4">
+    <section className="mt-5 overflow-hidden rounded-[20px] border border-[#263237] bg-[#0f1416] shadow-[0_24px_70px_rgba(0,0,0,0.32)]">
+      <div className="border-b border-[#202a2e] px-5 py-5 sm:px-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-[#FF5555]">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#ff4a50]">
               Intent recognized
             </p>
-            <p className="mt-3 text-lg font-semibold">
-              Swap <span className="text-[#CC0000]">{intent?.amount} {intent?.input_token}</span> → <span className="text-white">{intent?.output_token}</span>
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-2xl font-semibold text-white">
+              <span>{intent?.amount || "--"} {intent?.input_token || "--"}</span>
+              <ArrowRight className="h-5 w-5 text-[#ff4a50]" />
+              <span>{intent?.output_token || "--"}</span>
+            </div>
+          </div>
+          <div className="flex h-20 w-20 flex-none flex-col items-center justify-center rounded-2xl border border-[#263237] bg-[#12191b]">
+            <span className="text-2xl font-semibold text-white">
+              {routeScore || "--"}
+            </span>
+            <span className="text-xs text-[#8d9a9f]">score</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="px-5 py-5 sm:px-6">
+          <div className="rounded-2xl border border-[#263237] bg-[#12191b] p-4">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#8d9a9f]">
+              <Route className="h-4 w-4 text-[#ff4a50]" />
+              Best route
+            </div>
+            <p className="mt-3 break-all font-mono text-sm leading-6 text-[#c2cbce]">
+              {quote?.route_label || "Route label unavailable"}
             </p>
           </div>
-          <div className="rounded-3xl bg-[#111] px-4 py-2 text-sm text-[#888]">
-            {quote?.route_score ? `${quote.route_score}/100` : "Route score"}
+
+          <div className="mt-5 divide-y divide-[#263237] rounded-2xl border border-[#263237]">
+            <div className="grid gap-4 px-4 py-4 sm:grid-cols-[160px_1fr] sm:items-center">
+              <div className="flex items-center gap-2 text-sm font-medium text-[#8d9a9f]">
+                <TrendingDown className="h-4 w-4 text-[#ff4a50]" />
+                You receive
+              </div>
+              <div className="text-right sm:text-left">
+                <p className="text-2xl font-semibold text-white">
+                  {formattedOutput}
+                </p>
+                <p className="text-sm text-[#8d9a9f]">{intent?.output_token || ""}</p>
+              </div>
+            </div>
+
+            <div className="grid gap-4 px-4 py-4 sm:grid-cols-[160px_1fr] sm:items-center">
+              <div className="flex items-center gap-2 text-sm font-medium text-[#8d9a9f]">
+                <Gauge className="h-4 w-4 text-[#ff4a50]" />
+                Price impact
+              </div>
+              <p className="text-right text-base font-semibold text-white sm:text-left">
+                {formattedImpact}
+              </p>
+            </div>
+
+            <div className="grid gap-4 px-4 py-4 sm:grid-cols-[160px_1fr] sm:items-center">
+              <div className="flex items-center gap-2 text-sm font-medium text-[#8d9a9f]">
+                <Fuel className="h-4 w-4 text-[#ff4a50]" />
+                Network fee
+              </div>
+              <p className="text-right text-base font-semibold text-white sm:text-left">
+                ~0.000005 SOL
+              </p>
+            </div>
+
+            <div className="grid gap-4 px-4 py-4 sm:grid-cols-[160px_1fr] sm:items-center">
+              <div className="flex items-center gap-2 text-sm font-medium text-[#8d9a9f]">
+                <ShieldCheck className="h-4 w-4 text-[#ff4a50]" />
+                Risk
+              </div>
+              <div className="text-right sm:text-left">
+                <span className={`inline-flex rounded-full border px-3 py-1 text-sm font-semibold ${riskTone}`}>
+                  {risk?.score ?? "--"}/100 {riskLevel}
+                </span>
+              </div>
+            </div>
           </div>
+
+          {risk?.warnings?.length > 0 && (
+            <div className="mt-5 rounded-2xl border border-[#766024] bg-[#2d230b] p-4">
+              <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-[#ffd36a]">
+                <AlertTriangle className="h-4 w-4" />
+                Route warnings
+              </div>
+              <div className="space-y-2">
+                {risk.warnings.map((warning, index) => (
+                  <p key={index} className="text-sm leading-5 text-[#f5d98a]">
+                    {warning}
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 mb-4">
-          <div className="rounded-3xl border border-[#222] bg-[#111] p-4">
-            <p className="text-[#666] text-xs mb-1">📍 Best Route</p>
-            <p className="text-sm font-mono text-[#aaa] break-all">{quote?.route_label}</p>
+        <aside className="border-t border-[#202a2e] bg-[#12191b] px-5 py-5 sm:px-6 lg:border-l lg:border-t-0">
+          <div className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#8d9a9f]">
+            <Wallet className="h-4 w-4 text-[#ff4a50]" />
+            Wallet
           </div>
-          <div className="rounded-3xl border border-[#222] bg-[#111] p-4">
-            <p className="text-[#666] text-xs mb-1">💰 You Receive</p>
-            <p className="text-lg font-bold text-white">
-              {quote ? Number(quote.output_amount).toLocaleString(undefined, { maximumFractionDigits: 4 }) : "—"}
-            </p>
-            <p className="text-[#666] text-xs">{intent?.output_token}</p>
-          </div>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-3 mb-4">
-          <div className="rounded-3xl border border-[#222] bg-[#111] p-4 text-center">
-            <p className="text-[#666] text-xs mb-1">📊 Price Impact</p>
-            <p className="text-sm font-semibold">{impactEmoji} {quote?.price_impact_pct?.toFixed(4)}%</p>
-          </div>
-          <div className="rounded-3xl border border-[#222] bg-[#111] p-4 text-center">
-            <p className="text-[#666] text-xs mb-1">⛽ Network Fee</p>
-            <p className="text-sm font-semibold">~0.000005 SOL</p>
-          </div>
-          <div className="rounded-3xl border border-[#222] bg-[#111] p-4 text-center">
-            <p className="text-[#666] text-xs mb-1">🛡 Risk</p>
-            <p className="text-sm font-semibold" style={{ color: riskColor }}>{risk?.score}/100</p>
-          </div>
-        </div>
-
-        {risk?.warnings?.length > 0 && (
-          <div className="rounded-3xl border border-[#FF6600] bg-[#1A0A00] p-4 space-y-2 mb-4">
-            {risk.warnings.map((warning, index) => (
-              <p key={index} className="text-xs text-[#FFAA44]">{warning}</p>
-            ))}
-          </div>
-        )}
-
-        <div className="space-y-3 mb-3">
-          <label className="block text-xs uppercase tracking-[0.3em] text-[#666] mb-2">Wallet address</label>
+          <label
+            htmlFor="wallet-address"
+            className="mb-2 block text-sm font-medium text-white"
+          >
+            Solana address
+          </label>
           <input
+            id="wallet-address"
             value={wallet}
             onChange={(e) => onWalletChange(e.target.value)}
             placeholder="Enter Solana wallet address"
-            className="w-full rounded-2xl border border-[#222] bg-[#111] px-4 py-3 text-sm text-white outline-none transition focus:border-[#CC0000]"
+            className="w-full rounded-xl border border-[#263237] bg-[#0b1012] px-4 py-3 text-sm text-[#f4f7f5] outline-none transition placeholder:text-[#68777c] focus:border-[#ff4a50] focus:ring-4 focus:ring-[#ff4a50]/10"
           />
-          <p className="text-[#666] text-xs">No keys are stored. Only the wallet address is used to build the transaction.</p>
-        </div>
+          <p className="mt-2 text-xs leading-5 text-[#8d9a9f]">
+            No private keys are requested or stored.
+          </p>
 
-        {confirmError && (
-          <div className="rounded-2xl border border-[#551111] bg-[#150909] p-3 text-sm text-[#FF9999]">
-            {confirmError}
+          {confirmError && (
+            <div className="mt-4 rounded-xl border border-[#6b2428] bg-[#2a1013] p-3 text-sm text-[#ffb8ba]">
+              {confirmError}
+            </div>
+          )}
+
+          <div className="mt-5 flex flex-col gap-3">
+            <button
+              onClick={onConfirm}
+              disabled={!wallet || confirmLoading}
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#ff353b] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#ff4f55] disabled:cursor-not-allowed disabled:bg-[#273034] disabled:text-[#68777c]"
+            >
+              {confirmLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Preparing Phantom
+                </>
+              ) : (
+                <>
+                  <ExternalLink className="h-4 w-4" />
+                  Prepare in Phantom
+                </>
+              )}
+            </button>
+            <button
+              onClick={onReset}
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-[#263237] bg-[#0b1012] px-5 py-3 text-sm font-semibold text-[#c2cbce] transition-colors hover:border-[#ff4a50] hover:text-white"
+            >
+              <RefreshCcw className="h-4 w-4" />
+              Reset
+            </button>
           </div>
-        )}
 
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <button
-            onClick={onConfirm}
-            disabled={!wallet || confirmLoading}
-            className="flex-1 rounded-2xl bg-gradient-to-r from-[#CC0000] to-[#AA0000] px-5 py-4 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {confirmLoading ? "Preparing Phantom…" : "✅ Confirm Swap"}
-          </button>
-          <button
-            onClick={onReset}
-            className="rounded-2xl border border-[#222] bg-[#111] px-5 py-4 text-sm text-[#888] transition hover:border-[#CC0000] hover:text-white"
-          >
-            ✕ Reset
-          </button>
-        </div>
+          {phantomUrl && (
+            <a
+              href={phantomUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-3 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-[#ff4a50] bg-[#171f22] px-5 py-3 text-sm font-semibold text-[#ff8084] transition-colors hover:bg-[#221618]"
+            >
+              <ExternalLink className="h-4 w-4" />
+              Open transaction in Phantom
+            </a>
+          )}
 
-        {phantomUrl && (
-          <a
-            href={phantomUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="block rounded-2xl border border-[#222] bg-[#111] px-5 py-4 text-center text-sm font-semibold text-white transition hover:border-[#CC0000]"
-          >
-            Open transaction in Phantom
-          </a>
-        )}
-
-        <p className="text-center text-[#444] text-xs">
-          This interface prepares a Phantom transaction link, no private keys are transmitted.
-        </p>
+          <p className="mt-5 text-xs leading-5 text-[#8d9a9f]">
+            This interface prepares a transaction link for wallet review before signing.
+          </p>
+        </aside>
       </div>
-    </div>
+    </section>
   );
 }
