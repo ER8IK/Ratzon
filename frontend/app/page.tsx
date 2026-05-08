@@ -4,12 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
-  Gauge,
-  Layers3,
+  CircleDollarSign,
   Loader2,
   Radio,
   ShieldCheck,
-  Terminal,
   Wallet,
   Zap,
 } from "lucide-react";
@@ -17,35 +15,11 @@ import IntentInput from "@/components/IntentInput";
 import ResultCard from "@/components/ResultCard";
 import QuickActions from "@/components/QuickActions";
 
-const STATUS_ITEMS = [
-  { label: "Intent API", value: "Live", icon: Radio },
-  { label: "Route score", value: "0-100", icon: Gauge },
-  { label: "Wallet handoff", value: "Phantom", icon: Wallet },
-];
-
-const ROUTE_ROWS = [
-  ["Resolver", "Natural-language parser"],
-  ["Liquidity", "Jupiter route selection"],
-  ["Protection", "Risk and slippage checks"],
-  ["Execution", "Phantom transaction link"],
-];
-
-const CAPABILITIES = [
-  {
-    title: "Intent console",
-    body: "A focused command surface for swaps, prices, balances, and comparisons.",
-    icon: Terminal,
-  },
-  {
-    title: "Route intelligence",
-    body: "Quotes are shown with route labels, output amount, price impact, and network cost.",
-    icon: Layers3,
-  },
-  {
-    title: "Execution guardrails",
-    body: "Wallet entry, risk warnings, and Phantom handoff stay in one review flow.",
-    icon: ShieldCheck,
-  },
+const TRUST_ITEMS = [
+  { label: "Parser", value: "QVAC", icon: Radio },
+  { label: "Routing", value: "Jupiter", icon: CircleDollarSign },
+  { label: "Signing", value: "Phantom", icon: Wallet },
+  { label: "Keys", value: "Not stored", icon: ShieldCheck },
 ];
 
 function getPhantomProvider() {
@@ -110,16 +84,16 @@ export default function Home() {
   const resultRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!result || !resultRef.current) return;
+    if ((!result && !error) || !resultRef.current) return;
 
     const prefersReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
     resultRef.current.scrollIntoView({
-      block: "start",
+      block: "nearest",
       behavior: prefersReducedMotion ? "auto" : "smooth",
     });
-  }, [result]);
+  }, [result, error]);
 
   async function handleSubmit(text: string) {
     setLastQuery(text);
@@ -220,219 +194,231 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-[#080b0d] text-[#f4f7f5]">
-      <header className="sticky top-0 z-20 border-b border-[#202a2e] bg-[#080b0d]/90 px-4 py-4 backdrop-blur-xl sm:px-6">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 md:flex-row md:items-center">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#ff353b] text-lg font-black text-white shadow-[0_10px_28px_rgba(255,53,59,0.24)]">
+    <main className="min-h-screen bg-[#070909] text-[#f6f8f7]">
+      <header className="border-b border-[#222a2c] bg-[#070909]/95 px-4 py-4 backdrop-blur sm:px-6">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-10 w-10 flex-none items-center justify-center rounded-lg border border-[#3a1719] bg-[#e83a42] text-base font-black text-white shadow-[0_12px_28px_rgba(232,58,66,0.22)]">
               R
             </div>
-            <div>
-              <p className="text-base font-semibold tracking-[0.18em] text-white">
-                RATZON
+            <div className="min-w-0">
+              <p className="text-sm font-semibold uppercase tracking-[0.16em] text-white">
+                Ratzon
               </p>
-              <p className="text-xs uppercase text-[#8d9a9f]">
-                Solana intent execution
+              <p className="truncate text-xs text-[#9da8a9]">
+                Intent execution for Solana
               </p>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2 text-xs text-[#9aa7ab] md:ml-auto">
-            {STATUS_ITEMS.map((item) => {
-              const Icon = item.icon;
-              return (
-                <span
-                  key={item.label}
-                  className="inline-flex items-center gap-2 rounded-full border border-[#263237] bg-[#11181b] px-3 py-2 shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
-                >
-                  <Icon className="h-3.5 w-3.5 text-[#ff4a50]" />
-                  <span className="font-medium text-white">{item.value}</span>
-                  <span>{item.label}</span>
-                </span>
-              );
-            })}
+
+          <div className="hidden items-center gap-2 text-xs text-[#aab4b5] sm:flex">
+            <span className="inline-flex h-8 items-center gap-2 rounded-lg border border-[#293134] bg-[#101516] px-3">
+              <span className="h-2 w-2 rounded-full bg-[#36d27f]" />
+              Live routing
+            </span>
+            <span className="inline-flex h-8 items-center gap-2 rounded-lg border border-[#293134] bg-[#101516] px-3">
+              <Wallet className="h-3.5 w-3.5 text-[#62d5f6]" />
+              Phantom handoff
+            </span>
           </div>
         </div>
       </header>
 
-      <div className="mx-auto max-w-7xl px-4 pb-12 pt-5 sm:px-6 lg:px-8">
-        <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_420px]">
-          <div className="overflow-hidden rounded-[20px] border border-[#263237] bg-[#0f1416] shadow-[0_24px_70px_rgba(0,0,0,0.32)]">
-            <div className="border-b border-[#202a2e] px-5 py-5 sm:px-6">
-              <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-                <div className="max-w-2xl">
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#ff4a50]">
-                    Intent workstation
-                  </p>
-                  <h1 className="mt-3 text-3xl font-semibold leading-tight text-white sm:text-4xl">
-                    Ratzon
-                  </h1>
-                  <p className="mt-3 max-w-xl text-sm leading-6 text-[#a8b4b8] sm:text-base">
-                    Describe a Solana action, review the route, then hand the prepared transaction to Phantom.
-                  </p>
-                </div>
-                <div className="inline-flex w-fit items-center gap-2 rounded-full border border-[#263237] bg-[#151d20] px-3 py-2 text-xs font-medium text-[#c2cbce]">
-                  <CheckCircle2 className="h-4 w-4 text-[#36d27f]" />
-                  Mainnet routing
-                </div>
-              </div>
-            </div>
-
-            <div className="grid gap-5 px-5 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_260px]">
-              <div className="space-y-5">
-                <IntentInput onSubmit={handleSubmit} loading={loading} />
-
-                <div className="border-t border-[#202a2e] pt-5">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8d9a9f]">
-                      Fast intents
-                    </p>
-                    <Zap className="h-4 w-4 text-[#ff4a50]" />
-                  </div>
-                  <QuickActions onSelect={handleSubmit} />
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-[#202a2e] bg-[#12191b] p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8d9a9f]">
-                  Session
-                </p>
-                <div className="mt-4 space-y-3">
-                  <div className="flex items-center justify-between border-b border-[#263237] pb-3 text-sm">
-                    <span className="text-[#8d9a9f]">Parser</span>
-                    <span className="font-medium text-white">QVAC</span>
-                  </div>
-                  <div className="flex items-center justify-between border-b border-[#263237] pb-3 text-sm">
-                    <span className="text-[#8d9a9f]">Routing</span>
-                    <span className="font-medium text-white">Jupiter</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-[#8d9a9f]">Keys</span>
-                    <span className="font-medium text-white">Not stored</span>
-                  </div>
-                </div>
-                <div className="mt-5 rounded-xl border border-[#263237] bg-[#0d1214] px-4 py-3 text-xs leading-5 text-[#9aa7ab]">
-                  The wallet address is only used to prepare the transaction link.
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <aside className="overflow-hidden rounded-[20px] border border-[#263237] bg-[#0f1416] text-white shadow-[0_24px_70px_rgba(0,0,0,0.32)]">
-            <div className="route-map px-5 py-5">
-              <div className="flex items-start justify-between gap-4">
+      <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+        <section className="grid gap-4 lg:grid-cols-[minmax(0,620px)_minmax(420px,1fr)]">
+          <div className="rounded-lg border border-[#263033] bg-[#0f1415] shadow-[0_20px_70px_rgba(0,0,0,0.28)]">
+            <div className="border-b border-[#222a2c] px-4 py-4 sm:px-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#8d9a9f]">
-                    Route preview
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#ff4a50]">
+                    Intent console
                   </p>
-                  <h2 className="mt-3 text-2xl font-semibold">SOL to USDC</h2>
+                  <h1 className="mt-2 text-2xl font-semibold leading-tight text-white sm:text-3xl">
+                    Swap, price, and compare in plain English.
+                  </h1>
                 </div>
-                <div className="rounded-full border border-white/15 bg-white/[0.08] px-3 py-1 text-xs text-[#d8e1e3]">
-                  Demo state
-                </div>
-              </div>
-
-              <div className="mt-8 flex items-center justify-between gap-3">
-                <div className="route-node">
-                  <span>SOL</span>
-                </div>
-                <div className="h-px min-w-8 flex-1 bg-[#4a565a]" />
-                <div className="route-node route-node-accent">
-                  <span>R</span>
-                </div>
-                <div className="h-px min-w-8 flex-1 bg-[#4a565a]" />
-                <div className="route-node">
-                  <span>USDC</span>
-                </div>
-              </div>
-
-              <div className="mt-8 grid grid-cols-3 gap-2 text-center text-xs">
-                <div className="rounded-xl border border-white/10 bg-white/[0.08] px-3 py-3">
-                  <p className="text-[#8d9a9f]">Impact</p>
-                  <p className="mt-1 font-semibold text-white">0.08%</p>
-                </div>
-                <div className="rounded-xl border border-white/10 bg-white/[0.08] px-3 py-3">
-                  <p className="text-[#8d9a9f]">Score</p>
-                  <p className="mt-1 font-semibold text-white">94</p>
-                </div>
-                <div className="rounded-xl border border-white/10 bg-white/[0.08] px-3 py-3">
-                  <p className="text-[#8d9a9f]">Fee</p>
-                  <p className="mt-1 font-semibold text-white">~0.000005</p>
-                </div>
+                <span className="inline-flex h-8 items-center gap-2 rounded-lg border border-[#1f6d4b] bg-[#0d2419] px-3 text-xs font-medium text-[#70e1a6]">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  Mainnet quotes
+                </span>
               </div>
             </div>
 
-            <div className="divide-y divide-white/10 px-5 py-2">
-              {ROUTE_ROWS.map(([label, value]) => (
-                <div key={label} className="flex items-center justify-between gap-4 py-4 text-sm">
-                  <span className="text-[#8d9a9f]">{label}</span>
-                  <span className="text-right font-medium text-white">{value}</span>
-                </div>
-              ))}
-            </div>
-          </aside>
-        </section>
+            <div className="space-y-5 px-4 py-4 sm:px-5">
+              <IntentInput onSubmit={handleSubmit} loading={loading} />
 
-        {error && (
-          <div
-            role="alert"
-            className="mt-5 flex items-start gap-3 rounded-2xl border border-[#6b2428] bg-[#2a1013] p-4 text-sm text-[#ffb8ba]"
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#93a0a1]">
+                    Fast intents
+                  </p>
+                  <Zap className="h-4 w-4 text-[#f0c75e]" />
+                </div>
+                <QuickActions onSelect={handleSubmit} />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {TRUST_ITEMS.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <div
+                      key={item.label}
+                      className="rounded-lg border border-[#252d30] bg-[#0b1011] px-3 py-3"
+                    >
+                      <div className="flex items-center gap-2 text-[#7f8c8e]">
+                        <Icon className="h-3.5 w-3.5 text-[#62d5f6]" />
+                        <span className="text-[11px] uppercase tracking-[0.1em]">
+                          {item.label}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm font-medium text-white">
+                        {item.value}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <section
+            ref={resultRef}
+            className="min-h-[560px] rounded-lg border border-[#263033] bg-[#0f1415] shadow-[0_20px_70px_rgba(0,0,0,0.28)]"
           >
-            <AlertTriangle className="mt-0.5 h-4 w-4 flex-none" />
-            <p>{error}</p>
-          </div>
-        )}
-
-        {loading && (
-          <div className="mt-5 flex items-center justify-center gap-3 rounded-2xl border border-[#263237] bg-[#0f1416] p-8 text-center text-[#9aa7ab] shadow-[0_20px_60px_rgba(0,0,0,0.24)]">
-            <Loader2 className="h-5 w-5 animate-spin text-[#ff4a50]" />
-            <p>Searching best route and preparing quote...</p>
-          </div>
-        )}
-
-        {result && (
-          <div ref={resultRef} aria-live="polite" className="scroll-mt-[180px]">
-            <ResultCard
-              result={result}
-              wallet={wallet}
-              onWalletChange={setWallet}
-              onConfirm={handleConfirm}
-              confirmLoading={confirmLoading}
-              confirmError={confirmError}
-              phantomUrl={phantomUrl}
-              txSignature={txSignature}
-              onReset={() => {
-                setResult(null);
-                setWallet("");
-                setPhantomUrl(null);
-                setTxSignature(null);
-                setConfirmError(null);
-              }}
-            />
-          </div>
-        )}
-
-        <section className="mt-6 grid gap-4 lg:grid-cols-3">
-          {CAPABILITIES.map((item) => {
-            const Icon = item.icon;
-            return (
-              <div
-                key={item.title}
-                className="rounded-2xl border border-[#263237] bg-[#0f1416] p-5 shadow-[0_16px_50px_rgba(0,0,0,0.24)]"
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#1b2428] text-[#ff4a50]">
-                  <Icon className="h-5 w-5" />
+            <div className="border-b border-[#222a2c] px-4 py-4 sm:px-5">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#93a0a1]">
+                    Route / execution
+                  </p>
+                  <h2 className="mt-2 text-xl font-semibold text-white">
+                    {error ? "Needs attention" : result ? "Review route" : loading ? "Finding route" : "Ready"}
+                  </h2>
                 </div>
-                <h3 className="mt-4 text-base font-semibold text-white">
-                  {item.title}
-                </h3>
-                <p className="mt-2 text-sm leading-6 text-[#9aa7ab]">
-                  {item.body}
-                </p>
+                <span className="inline-flex h-8 items-center rounded-lg border border-[#293134] bg-[#101516] px-3 text-xs font-medium text-[#aab4b5]">
+                  {error ? "Request failed" : result ? "Quote loaded" : "No wallet connected"}
+                </span>
               </div>
-            );
-          })}
+            </div>
+
+            {error ? (
+              <div className="p-4 sm:p-5">
+                <div
+                  role="alert"
+                  className="rounded-lg border border-[#6b2428] bg-[#2a1013] p-4 text-sm leading-6 text-[#ffb8ba]"
+                >
+                  <div className="mb-2 flex items-center gap-2 font-semibold text-white">
+                    <AlertTriangle className="h-4 w-4 text-[#ff6268]" />
+                    Route request failed
+                  </div>
+                  <p>{error}</p>
+                </div>
+              </div>
+            ) : loading ? (
+              <RoutePlaceholder loading />
+            ) : result ? (
+              <ResultCard
+                result={result}
+                wallet={wallet}
+                onWalletChange={setWallet}
+                onConfirm={handleConfirm}
+                confirmLoading={confirmLoading}
+                confirmError={confirmError}
+                phantomUrl={phantomUrl}
+                txSignature={txSignature}
+                onReset={() => {
+                  setResult(null);
+                  setWallet("");
+                  setPhantomUrl(null);
+                  setTxSignature(null);
+                  setConfirmError(null);
+                }}
+              />
+            ) : (
+              <RoutePlaceholder />
+            )}
+          </section>
         </section>
       </div>
     </main>
+  );
+}
+
+function RoutePlaceholder({ loading = false }: { loading?: boolean }) {
+  return (
+    <div className="p-4 sm:p-5">
+      <div className="route-map rounded-lg border border-[#222a2c] p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#93a0a1]">
+              Preview
+            </p>
+            <p className="mt-2 text-2xl font-semibold text-white">
+              SOL to USDC
+            </p>
+          </div>
+          {loading ? (
+            <Loader2 className="h-5 w-5 animate-spin text-[#ff4a50]" />
+          ) : (
+            <span className="h-2 w-2 rounded-full bg-[#62d5f6]" />
+          )}
+        </div>
+
+        <div className="mt-8 flex items-center justify-between gap-3">
+          <div className="route-node">
+            <span>SOL</span>
+          </div>
+          <div className="h-px min-w-8 flex-1 bg-[#455255]" />
+          <div className="route-node route-node-accent">
+            <span>R</span>
+          </div>
+          <div className="h-px min-w-8 flex-1 bg-[#455255]" />
+          <div className="route-node">
+            <span>USDC</span>
+          </div>
+        </div>
+
+        <div className="mt-8 grid grid-cols-3 gap-2 text-center text-xs">
+          {[
+            ["Impact", loading ? "..." : "--"],
+            ["Score", loading ? "..." : "--"],
+            ["Fee", loading ? "..." : "--"],
+          ].map(([label, value]) => (
+            <div
+              key={label}
+              className="rounded-lg border border-white/10 bg-white/[0.06] px-3 py-3"
+            >
+              <p className="text-[#8d9a9f]">{label}</p>
+              <p className="mt-1 font-semibold text-white">{value}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-2">
+        {[
+          ["1", "Intent parsed"],
+          ["2", "Jupiter route selected"],
+          ["3", "Risk checked"],
+          ["4", "Ready for Phantom"],
+        ].map(([number, label], index) => (
+          <div
+            key={label}
+            className="flex items-center gap-3 rounded-lg border border-[#222a2c] bg-[#0b1011] px-3 py-3"
+          >
+            <span
+              className={`flex h-6 w-6 flex-none items-center justify-center rounded-md text-xs font-semibold ${
+                loading && index === 1
+                  ? "bg-[#ff4a50] text-white"
+                  : "bg-[#151c1e] text-[#9da8a9]"
+              }`}
+            >
+              {number}
+            </span>
+            <span className="text-sm text-[#c5ced0]">{label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
