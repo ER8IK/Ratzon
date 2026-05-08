@@ -27,7 +27,7 @@ export default function QuickActions({ onSelect }) {
             key={action.value}
             onClick={() => onSelect(action.value)}
             type="button"
-            className="group flex min-h-12 items-center gap-2 rounded-xl border border-[#263237] bg-[#12191b] px-3 py-2 text-left text-sm font-medium text-[#c2cbce] transition-colors hover:border-[#ff4a50] hover:bg-[#171f22] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ff4a50]"
+            className="group flex min-h-11 items-center gap-2 rounded-lg border border-[#263033] bg-[#0b1011] px-3 py-2 text-left text-sm font-medium text-[#c5ced0] transition-colors hover:border-[#62d5f6] hover:bg-[#111819] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ff4a50]"
           >
             <Icon className="h-4 w-4 flex-none text-[#ff4a50]" />
             <span className="truncate">{action.label}</span>

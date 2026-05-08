@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 :root {
-  --page-bg: #080b0d;
-  --ink: #f4f7f5;
+  --page-bg: #070909;
+  --ink: #f6f8f7;
   --brand: #ff4a50;
 }
 
@@ -43,22 +43,22 @@ textarea {
 }
 
 .route-map {
-  background-color: #0f1416;
+  background-color: #0e1314;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.055) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.055) 1px, transparent 1px);
+    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
   background-size: 28px 28px;
 }
 
 .route-node {
   display: flex;
-  min-width: 64px;
-  height: 64px;
+  min-width: 60px;
+  height: 60px;
   align-items: center;
   justify-content: center;
   border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 18px;
-  background: #141c1f;
+  border-radius: 8px;
+  background: #121819;
   color: #ffffff;
   font-size: 0.875rem;
   font-weight: 700;
@@ -66,8 +66,8 @@ textarea {
 
 .route-node-accent {
   border-color: rgba(255, 74, 80, 0.76);
-  background: #ff353b;
-  box-shadow: 0 12px 34px rgba(255, 53, 59, 0.26);
+  background: #e83a42;
+  box-shadow: 0 12px 34px rgba(232, 58, 66, 0.24);
 }
 
 ::-webkit-scrollbar {
