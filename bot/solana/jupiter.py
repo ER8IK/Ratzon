@@ -86,10 +86,10 @@ class JupiterClient:
 
         except aiohttp.ClientError as e:
             logger.error(f"Jupiter API connection error: {e}")
-            return None
+            return None, None
         except Exception as e:
             logger.error(f"Unexpected error in Jupiter quote: {e}", exc_info=True)
-            return None
+            return None, None
 
     async def get_swap_transaction(
         self,
@@ -158,7 +158,6 @@ class JupiterClient:
             price_impact_pct=price_impact,
             route_label=route_label,
             fees_sol=fees_sol,
-            raw_response=data,
         )
 
     def _build_route_label(self, data: dict, intent: SwapIntent) -> str:
