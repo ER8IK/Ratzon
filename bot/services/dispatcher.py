@@ -51,6 +51,7 @@ class IntentDispatcher:
             return DispatchResult(
                 text=formatter.format_parse_error(intent), intent=intent,
             )
+        intent.slippage_bps = self._resolve_slippage(intent)
         quote, raw = await jupiter_client.get_quote(intent)
         if quote is None:
             return DispatchResult(
@@ -62,6 +63,16 @@ class IntentDispatcher:
             show_confirm_button=True,
             intent=intent, quote=quote, risk=risk, quote_raw=raw,
         )
+
+    def _resolve_slippage(self, intent: SwapIntent) -> int:
+        if intent.input_token == "USDC" or intent.output_token == "USDC":
+            return 30
+
+        low_liquidity = {"BONK", "WIF", "MYRO", "BOME", "POPCAT", "SLERF"}
+        if intent.input_token in low_liquidity or intent.output_token in low_liquidity:
+            return 300
+
+        return intent.slippage_bps or 50
 
     async def _handle_price(self, intent: PriceIntent) -> DispatchResult:
         if not intent.token:
