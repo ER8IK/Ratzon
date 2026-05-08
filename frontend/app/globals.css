@@ -2,26 +2,95 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --page-bg: #080b0d;
+  --ink: #f4f7f5;
+  --brand: #ff4a50;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
+html {
+  background: var(--page-bg);
+}
+
 body {
-  background: #0D0D0D;
-  color: white;
+  background: var(--page-bg);
+  color: var(--ink);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  background: rgba(255, 74, 80, 0.22);
+  color: var(--ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 3px;
+}
+
+.route-map {
+  background-color: #0f1416;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.055) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.route-node {
+  display: flex;
+  min-width: 64px;
+  height: 64px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 18px;
+  background: #141c1f;
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.route-node-accent {
+  border-color: rgba(255, 74, 80, 0.76);
+  background: #ff353b;
+  box-shadow: 0 12px 34px rgba(255, 53, 59, 0.26);
 }
 
 ::-webkit-scrollbar {
-  width: 4px;
+  width: 8px;
 }
+
 ::-webkit-scrollbar-track {
-  background: #111;
+  background: #0b1012;
 }
+
 ::-webkit-scrollbar-thumb {
-  background: #CC0000;
-  border-radius: 2px;
+  background: #344248;
+  border-radius: 999px;
+  border: 2px solid #0b1012;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }

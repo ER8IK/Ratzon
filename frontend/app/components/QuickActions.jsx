@@ -1,34 +1,39 @@
 "use client";
 
+import {
+  ArrowRightLeft,
+  CircleDollarSign,
+  Percent,
+  Scale,
+  Wallet,
+} from "lucide-react";
+
 const QUICK_ACTIONS = [
-  { label: "Swap SOL → USDC", value: "Swap 1 SOL to USDC", emoji: "💱" },
-  { label: "Swap USDC → BONK", value: "Swap 100 USDC to BONK", emoji: "🎰" },
-  { label: "SOL Price", value: "Price of SOL", emoji: "💲" },
-  { label: "Compare SOL & JUP", value: "Compare SOL and JUP", emoji: "⚖️" },
-  { label: "My Balance", value: "My balance", emoji: "💼" },
-  { label: "Rate SOL/USDC", value: "Rate SOL to USDC", emoji: "📐" },
+  { label: "SOL to USDC", value: "Swap 1 SOL to USDC", icon: ArrowRightLeft },
+  { label: "USDC to BONK", value: "Swap 100 USDC to BONK", icon: ArrowRightLeft },
+  { label: "SOL price", value: "Price of SOL", icon: CircleDollarSign },
+  { label: "SOL vs JUP", value: "Compare SOL and JUP", icon: Scale },
+  { label: "Balance", value: "My balance", icon: Wallet },
+  { label: "Rate", value: "Rate SOL to USDC", icon: Percent },
 ];
 
 export default function QuickActions({ onSelect }) {
   return (
-    <div className="space-y-2">
-      <p className="text-[#444] text-xs uppercase tracking-wider px-1">
-        Quick actions
-      </p>
-      <div className="grid grid-cols-2 gap-2">
-        {QUICK_ACTIONS.map((action) => (
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+      {QUICK_ACTIONS.map((action) => {
+        const Icon = action.icon;
+        return (
           <button
             key={action.value}
             onClick={() => onSelect(action.value)}
-            className="bg-[#111] hover:bg-[#1A1A1A] border border-[#1A1A1A] hover:border-[#CC0000] rounded-xl p-3 text-left transition-all group"
+            type="button"
+            className="group flex min-h-12 items-center gap-2 rounded-xl border border-[#263237] bg-[#12191b] px-3 py-2 text-left text-sm font-medium text-[#c2cbce] transition-colors hover:border-[#ff4a50] hover:bg-[#171f22] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ff4a50]"
           >
-            <span className="text-lg">{action.emoji}</span>
-            <p className="text-xs text-[#888] group-hover:text-white mt-1 transition-colors">
-              {action.label}
-            </p>
+            <Icon className="h-4 w-4 flex-none text-[#ff4a50]" />
+            <span className="truncate">{action.label}</span>
           </button>
-        ))}
-      </div>
+        );
+      })}
     </div>
   );
 }

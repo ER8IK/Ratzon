@@ -1,9 +1,52 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Gauge,
+  Layers3,
+  Loader2,
+  Radio,
+  ShieldCheck,
+  Terminal,
+  Wallet,
+  Zap,
+} from "lucide-react";
 import IntentInput from "@/components/IntentInput";
 import ResultCard from "@/components/ResultCard";
 import QuickActions from "@/components/QuickActions";
+
+const STATUS_ITEMS = [
+  { label: "Intent API", value: "Live", icon: Radio },
+  { label: "Route score", value: "0-100", icon: Gauge },
+  { label: "Wallet handoff", value: "Phantom", icon: Wallet },
+];
+
+const ROUTE_ROWS = [
+  ["Resolver", "Natural-language parser"],
+  ["Liquidity", "Jupiter route selection"],
+  ["Protection", "Risk and slippage checks"],
+  ["Execution", "Phantom transaction link"],
+];
+
+const CAPABILITIES = [
+  {
+    title: "Intent console",
+    body: "A focused command surface for swaps, prices, balances, and comparisons.",
+    icon: Terminal,
+  },
+  {
+    title: "Route intelligence",
+    body: "Quotes are shown with route labels, output amount, price impact, and network cost.",
+    icon: Layers3,
+  },
+  {
+    title: "Execution guardrails",
+    body: "Wallet entry, risk warnings, and Phantom handoff stay in one review flow.",
+    icon: ShieldCheck,
+  },
+];
 
 export default function Home() {
   const [lastQuery, setLastQuery] = useState("");
@@ -14,6 +57,19 @@ export default function Home() {
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [phantomUrl, setPhantomUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const resultRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!result || !resultRef.current) return;
+
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    resultRef.current.scrollIntoView({
+      block: "start",
+      behavior: prefersReducedMotion ? "auto" : "smooth",
+    });
+  }, [result]);
 
   async function handleSubmit(text: string) {
     setLastQuery(text);
@@ -74,103 +130,216 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-[#050505] text-white">
-      <header className="border-b border-[#111] px-6 py-5 backdrop-blur-xl bg-black/40">
-        <div className="max-w-5xl mx-auto flex flex-col gap-4 md:flex-row md:items-center">
+    <main className="min-h-screen bg-[#080b0d] text-[#f4f7f5]">
+      <header className="sticky top-0 z-20 border-b border-[#202a2e] bg-[#080b0d]/90 px-4 py-4 backdrop-blur-xl sm:px-6">
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 md:flex-row md:items-center">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-3xl bg-gradient-to-br from-[#E33E3E] to-[#881919] flex items-center justify-center text-white font-black text-lg">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#ff353b] text-lg font-black text-white shadow-[0_10px_28px_rgba(255,53,59,0.24)]">
               R
             </div>
             <div>
-              <p className="text-base font-semibold tracking-[0.2em]">RATZON</p>
-              <p className="text-xs text-[#888] uppercase">Solana intent execution</p>
+              <p className="text-base font-semibold tracking-[0.18em] text-white">
+                RATZON
+              </p>
+              <p className="text-xs uppercase text-[#8d9a9f]">
+                Solana intent execution
+              </p>
             </div>
           </div>
-          <div className="ml-auto flex flex-wrap gap-2 text-xs text-[#666]">
-            <span className="rounded-full border border-[#222] bg-[#0D0D0D] px-3 py-1">Dark mode ready</span>
-            <span className="rounded-full border border-[#222] bg-[#0D0D0D] px-3 py-1">Best execution</span>
-            <span className="rounded-full border border-[#222] bg-[#0D0D0D] px-3 py-1">Wallet-aware</span>
+          <div className="flex flex-wrap gap-2 text-xs text-[#9aa7ab] md:ml-auto">
+            {STATUS_ITEMS.map((item) => {
+              const Icon = item.icon;
+              return (
+                <span
+                  key={item.label}
+                  className="inline-flex items-center gap-2 rounded-full border border-[#263237] bg-[#11181b] px-3 py-2 shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
+                >
+                  <Icon className="h-3.5 w-3.5 text-[#ff4a50]" />
+                  <span className="font-medium text-white">{item.value}</span>
+                  <span>{item.label}</span>
+                </span>
+              );
+            })}
           </div>
         </div>
       </header>
 
-      <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
-        <section className="grid gap-8 lg:grid-cols-[1.4fr_1fr]">
-          <div className="space-y-6">
-            <div className="space-y-4">
-              <p className="text-sm uppercase tracking-[0.3em] text-[#FF5555]">
-                Best execution engine
-              </p>
-              <h1 className="text-4xl font-semibold leading-tight sm:text-5xl">
-                Swap on Solana with smart route selection and one-click Phantom execution.
-              </h1>
-              <p className="max-w-2xl text-[#888] text-base leading-7">
-                Ratzon turns plain English swaps into a high-quality Solana route — with route scoring, adaptive slippage, and wallet-aware transaction preparation.
-              </p>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              {[
-                { label: "Route Quality", value: "Score, impact, fees", icon: "🚦" },
-                { label: "Adaptive Slippage", value: "Smart swap tolerance", icon: "⚙️" },
-                { label: "Wallet-aware", value: "Your address, your route", icon: "🔑" },
-                { label: "One-click Phantom", value: "Instant tx load", icon: "👻" },
-              ].map((item) => (
-                <div key={item.label} className="rounded-3xl border border-[#222] bg-[#0F0F0F] p-5">
-                  <p className="text-2xl">{item.icon}</p>
-                  <p className="mt-3 text-sm text-[#888]">{item.label}</p>
-                  <p className="mt-2 font-semibold">{item.value}</p>
+      <div className="mx-auto max-w-7xl px-4 pb-12 pt-5 sm:px-6 lg:px-8">
+        <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_420px]">
+          <div className="overflow-hidden rounded-[20px] border border-[#263237] bg-[#0f1416] shadow-[0_24px_70px_rgba(0,0,0,0.32)]">
+            <div className="border-b border-[#202a2e] px-5 py-5 sm:px-6">
+              <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                <div className="max-w-2xl">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#ff4a50]">
+                    Intent workstation
+                  </p>
+                  <h1 className="mt-3 text-3xl font-semibold leading-tight text-white sm:text-4xl">
+                    Ratzon
+                  </h1>
+                  <p className="mt-3 max-w-xl text-sm leading-6 text-[#a8b4b8] sm:text-base">
+                    Describe a Solana action, review the route, then hand the prepared transaction to Phantom.
+                  </p>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-5">
-            <div className="rounded-[28px] border border-[#222] bg-[#0C0C0C] p-6 shadow-[0_0_35px_rgba(0,0,0,0.18)]">
-              <p className="text-sm text-[#666] uppercase tracking-[0.25em] mb-4">Try it now</p>
-              <IntentInput onSubmit={handleSubmit} loading={loading} />
-              <div className="mt-5 text-sm text-[#777]">
-                <p>Use a clear swap phrase like <span className="text-white">Swap 1 SOL to USDC</span> or <span className="text-white">convert 100 USDC to BONK</span>.</p>
+                <div className="inline-flex w-fit items-center gap-2 rounded-full border border-[#263237] bg-[#151d20] px-3 py-2 text-xs font-medium text-[#c2cbce]">
+                  <CheckCircle2 className="h-4 w-4 text-[#36d27f]" />
+                  Mainnet routing
+                </div>
               </div>
             </div>
 
-            <div className="hidden md:block rounded-[28px] border border-[#222] bg-[#0F0F0F] p-5">
-              <p className="text-xs uppercase tracking-[0.3em] text-[#888] mb-4">Quick prompts</p>
-              <QuickActions onSelect={handleSubmit} />
+            <div className="grid gap-5 px-5 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_260px]">
+              <div className="space-y-5">
+                <IntentInput onSubmit={handleSubmit} loading={loading} />
+
+                <div className="border-t border-[#202a2e] pt-5">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8d9a9f]">
+                      Fast intents
+                    </p>
+                    <Zap className="h-4 w-4 text-[#ff4a50]" />
+                  </div>
+                  <QuickActions onSelect={handleSubmit} />
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-[#202a2e] bg-[#12191b] p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8d9a9f]">
+                  Session
+                </p>
+                <div className="mt-4 space-y-3">
+                  <div className="flex items-center justify-between border-b border-[#263237] pb-3 text-sm">
+                    <span className="text-[#8d9a9f]">Parser</span>
+                    <span className="font-medium text-white">QVAC</span>
+                  </div>
+                  <div className="flex items-center justify-between border-b border-[#263237] pb-3 text-sm">
+                    <span className="text-[#8d9a9f]">Routing</span>
+                    <span className="font-medium text-white">Jupiter</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-[#8d9a9f]">Keys</span>
+                    <span className="font-medium text-white">Not stored</span>
+                  </div>
+                </div>
+                <div className="mt-5 rounded-xl border border-[#263237] bg-[#0d1214] px-4 py-3 text-xs leading-5 text-[#9aa7ab]">
+                  The wallet address is only used to prepare the transaction link.
+                </div>
+              </div>
             </div>
           </div>
+
+          <aside className="overflow-hidden rounded-[20px] border border-[#263237] bg-[#0f1416] text-white shadow-[0_24px_70px_rgba(0,0,0,0.32)]">
+            <div className="route-map px-5 py-5">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#8d9a9f]">
+                    Route preview
+                  </p>
+                  <h2 className="mt-3 text-2xl font-semibold">SOL to USDC</h2>
+                </div>
+                <div className="rounded-full border border-white/15 bg-white/[0.08] px-3 py-1 text-xs text-[#d8e1e3]">
+                  Demo state
+                </div>
+              </div>
+
+              <div className="mt-8 flex items-center justify-between gap-3">
+                <div className="route-node">
+                  <span>SOL</span>
+                </div>
+                <div className="h-px min-w-8 flex-1 bg-[#4a565a]" />
+                <div className="route-node route-node-accent">
+                  <span>R</span>
+                </div>
+                <div className="h-px min-w-8 flex-1 bg-[#4a565a]" />
+                <div className="route-node">
+                  <span>USDC</span>
+                </div>
+              </div>
+
+              <div className="mt-8 grid grid-cols-3 gap-2 text-center text-xs">
+                <div className="rounded-xl border border-white/10 bg-white/[0.08] px-3 py-3">
+                  <p className="text-[#8d9a9f]">Impact</p>
+                  <p className="mt-1 font-semibold text-white">0.08%</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/[0.08] px-3 py-3">
+                  <p className="text-[#8d9a9f]">Score</p>
+                  <p className="mt-1 font-semibold text-white">94</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/[0.08] px-3 py-3">
+                  <p className="text-[#8d9a9f]">Fee</p>
+                  <p className="mt-1 font-semibold text-white">~0.000005</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="divide-y divide-white/10 px-5 py-2">
+              {ROUTE_ROWS.map(([label, value]) => (
+                <div key={label} className="flex items-center justify-between gap-4 py-4 text-sm">
+                  <span className="text-[#8d9a9f]">{label}</span>
+                  <span className="text-right font-medium text-white">{value}</span>
+                </div>
+              ))}
+            </div>
+          </aside>
         </section>
 
         {error && (
-          <div className="rounded-3xl border border-[#551111] bg-[#150909] p-4 text-sm text-[#FF9999]">
-            ⚠️ {error}
+          <div
+            role="alert"
+            className="mt-5 flex items-start gap-3 rounded-2xl border border-[#6b2428] bg-[#2a1013] p-4 text-sm text-[#ffb8ba]"
+          >
+            <AlertTriangle className="mt-0.5 h-4 w-4 flex-none" />
+            <p>{error}</p>
           </div>
         )}
 
         {loading && (
-          <div className="rounded-[28px] border border-[#222] bg-[#0F0F0F] p-12 text-center">
-            <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-[#CC0000] border-t-transparent" />
-            <p className="text-[#888]">Searching best route and preparing quote...</p>
+          <div className="mt-5 flex items-center justify-center gap-3 rounded-2xl border border-[#263237] bg-[#0f1416] p-8 text-center text-[#9aa7ab] shadow-[0_20px_60px_rgba(0,0,0,0.24)]">
+            <Loader2 className="h-5 w-5 animate-spin text-[#ff4a50]" />
+            <p>Searching best route and preparing quote...</p>
           </div>
         )}
 
         {result && (
-          <ResultCard
-            result={result}
-            wallet={wallet}
-            onWalletChange={setWallet}
-            onConfirm={handleConfirm}
-            confirmLoading={confirmLoading}
-            confirmError={confirmError}
-            phantomUrl={phantomUrl}
-            onReset={() => {
-              setResult(null);
-              setWallet("");
-              setPhantomUrl(null);
-              setConfirmError(null);
-            }}
-          />
+          <div ref={resultRef} aria-live="polite" className="scroll-mt-[180px]">
+            <ResultCard
+              result={result}
+              wallet={wallet}
+              onWalletChange={setWallet}
+              onConfirm={handleConfirm}
+              confirmLoading={confirmLoading}
+              confirmError={confirmError}
+              phantomUrl={phantomUrl}
+              onReset={() => {
+                setResult(null);
+                setWallet("");
+                setPhantomUrl(null);
+                setConfirmError(null);
+              }}
+            />
+          </div>
         )}
+
+        <section className="mt-6 grid gap-4 lg:grid-cols-3">
+          {CAPABILITIES.map((item) => {
+            const Icon = item.icon;
+            return (
+              <div
+                key={item.title}
+                className="rounded-2xl border border-[#263237] bg-[#0f1416] p-5 shadow-[0_16px_50px_rgba(0,0,0,0.24)]"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#1b2428] text-[#ff4a50]">
+                  <Icon className="h-5 w-5" />
+                </div>
+                <h3 className="mt-4 text-base font-semibold text-white">
+                  {item.title}
+                </h3>
+                <p className="mt-2 text-sm leading-6 text-[#9aa7ab]">
+                  {item.body}
+                </p>
+              </div>
+            );
+          })}
+        </section>
       </div>
     </main>
   );
