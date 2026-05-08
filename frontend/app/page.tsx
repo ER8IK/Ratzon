@@ -59,7 +59,9 @@ function buildPhantomBrowseUrl() {
 
 async function connectInjectedPhantom(provider: any) {
   const connection = await provider.connect();
-  return connection?.publicKey?.toString?.() || provider.publicKey?.toString?.();
+  return (
+    connection?.publicKey?.toString?.() || provider.publicKey?.toString?.()
+  );
 }
 
 async function signWithInjectedPhantom(provider: any, transaction: string) {
@@ -68,7 +70,11 @@ async function signWithInjectedPhantom(provider: any, transaction: string) {
     decodeBase64Transaction(transaction),
   );
   const result = await provider.signAndSendTransaction(versionedTransaction);
-  return result?.signature || result?.hash || (typeof result === "string" ? result : null);
+  return (
+    result?.signature ||
+    result?.hash ||
+    (typeof result === "string" ? result : null)
+  );
 }
 
 export default function Home() {
@@ -170,7 +176,10 @@ export default function Home() {
       setPhantomUrl(data.phantom_url);
 
       if (provider && data.transaction) {
-        const signature = await signWithInjectedPhantom(provider, data.transaction);
+        const signature = await signWithInjectedPhantom(
+          provider,
+          data.transaction,
+        );
         if (signature) {
           setTxSignature(signature);
           return;
@@ -179,7 +188,9 @@ export default function Home() {
       }
 
       if (isMobileDevice()) {
-        window.location.assign(data.phantom_browse_url || buildPhantomBrowseUrl());
+        window.location.assign(
+          data.phantom_browse_url || buildPhantomBrowseUrl(),
+        );
         return;
       }
 
@@ -198,9 +209,11 @@ export default function Home() {
       <header className="border-b border-[#222a2c] bg-[#070909]/95 px-4 py-4 backdrop-blur sm:px-6">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 flex-none items-center justify-center rounded-lg border border-[#3a1719] bg-[#e83a42] text-base font-black text-white shadow-[0_12px_28px_rgba(232,58,66,0.22)]">
-              R
-            </div>
+            <img
+              src="/Ratzon_logo-removebg-preview.png"
+              alt="Ratzon logo"
+              className="h-12 w-12 flex-none object-contain"
+            />
             <div className="min-w-0">
               <p className="text-sm font-semibold uppercase tracking-[0.16em] text-white">
                 Ratzon
