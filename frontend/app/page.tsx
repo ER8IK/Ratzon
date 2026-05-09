@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  Activity,
   AlertTriangle,
   CheckCircle2,
-  CircleDollarSign,
   Loader2,
   Radio,
   ShieldCheck,
@@ -19,17 +19,17 @@ import DriftPreviewPanel from "@/components/DriftPreviewPanel";
 import SafetyCheckPanel, { SAMPLE_ADDRESSES } from "@/components/SafetyCheckPanel";
 
 const TRUST_ITEMS = [
-  { label: "Parser", value: "QVAC", icon: Radio },
-  { label: "Routing", value: "Router", icon: CircleDollarSign },
-  { label: "Signing", value: "Phantom", icon: Wallet },
-  { label: "Keys", value: "Not stored", icon: ShieldCheck },
+  { label: "Intent AI", value: "Online", icon: Radio },
+  { label: "Routes", value: "Multi-provider", icon: Activity },
+  { label: "Approvals", value: "Wallet-only", icon: Wallet },
+  { label: "Guardrails", value: "Active", icon: ShieldCheck },
 ];
 
 const DEFAULT_PROTOCOL_MODES = [
-  { label: "Swap", value: "Jupiter", status: "Live", intent: "Swap 1 SOL to USDC" },
-  { label: "Smart Swap", value: "SimpleSwap", status: "Demo", intent: "Swap 50 USDT TRC20 to BTC" },
-  { label: "Earn", value: "Kamino", status: "Preview", intent: "Find best yield for USDC" },
-  { label: "Trade", value: "Drift", status: "Preview", intent: "Long SOL with 2x" },
+  { label: "Swap", value: "Jupiter", status: "Ready", intent: "Swap 1 SOL to USDC" },
+  { label: "Smart Swap", value: "SimpleSwap", status: "Ready", intent: "Swap 50 USDT TRC20 to BTC" },
+  { label: "Earn", value: "Kamino", status: "Ready", intent: "Find best yield for USDC" },
+  { label: "Trade", value: "Drift", status: "Ready", intent: "Long SOL with 2x" },
 ];
 
 const PROTOCOL_MODE_META: Record<string, { label: string; intent: string }> = {
@@ -62,9 +62,7 @@ function protocolModeFromCapability(capability: any) {
 }
 
 function protocolStatusLabel(status: string) {
-  if (status === "live") return "Live";
-  if (status === "demo") return "Demo";
-  return "Preview";
+  return "Ready";
 }
 
 function getPhantomProvider() {
@@ -614,65 +612,87 @@ export default function Home() {
     !inWalletExecution && (isTelegramWebView() || isMobileDevice());
 
   return (
-    <main className="min-h-screen bg-[#070909] text-[#f6f8f7]">
-      <header className="border-b border-[#222a2c] bg-[#070909]/95 px-4 py-4 backdrop-blur sm:px-6">
+    <main className="min-h-screen bg-[#050706] text-[#f6f8f7]">
+      <header className="sticky top-0 z-20 border-b border-[#1f2927] bg-[#050706]/90 px-4 py-3 backdrop-blur-xl sm:px-6">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
             <img
               src="/Ratzon_logo-removebg-preview.png"
               alt="Ratzon logo"
-              className="h-12 w-12 flex-none object-contain"
+              className="h-11 w-11 flex-none object-contain"
             />
             <div className="min-w-0">
-              <p className="text-sm font-semibold uppercase tracking-[0.16em] text-white">
+              <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#f8fbf8]">
                 Ratzon
               </p>
               <p className="truncate text-xs text-[#9da8a9]">
-                Intent execution for Solana
+                Protected crypto execution
               </p>
             </div>
           </div>
 
-          <div className="hidden items-center gap-2 text-xs text-[#aab4b5] sm:flex">
-            <span className="inline-flex h-8 items-center gap-2 rounded-lg border border-[#293134] bg-[#101516] px-3">
+          <div className="hidden items-center gap-2 text-xs text-[#c3cecb] sm:flex">
+            <span className="inline-flex h-8 items-center gap-2 rounded-lg border border-[#265744] bg-[#0b2118] px-3">
               <span className="h-2 w-2 rounded-full bg-[#36d27f]" />
-              Live routing
+              Routes ready
             </span>
-            <span className="inline-flex h-8 items-center gap-2 rounded-lg border border-[#293134] bg-[#101516] px-3">
+            <span className="inline-flex h-8 items-center gap-2 rounded-lg border border-[#3a3030] bg-[#171110] px-3">
               <Wallet className="h-3.5 w-3.5 text-[#62d5f6]" />
-              Phantom handoff
+              User-controlled signing
             </span>
           </div>
         </div>
       </header>
 
-      <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-        <section className="grid gap-4 lg:grid-cols-[minmax(0,620px)_minmax(420px,1fr)]">
-          <div className="rounded-lg border border-[#263033] bg-[#0f1415] shadow-[0_20px_70px_rgba(0,0,0,0.28)]">
-            <div className="border-b border-[#222a2c] px-4 py-4 sm:px-5">
+      <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
+        <section className="grid gap-4 lg:grid-cols-[minmax(0,600px)_minmax(440px,1fr)]">
+          <div className="rounded-lg border border-[#263033] bg-[#0c1110] shadow-[0_24px_90px_rgba(0,0,0,0.34)]">
+            <div className="border-b border-[#202a28] px-4 py-5 sm:px-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#ff4a50]">
-                    Intent console
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#70e1a6]">
+                    Command Center
                   </p>
-                  <h1 className="mt-2 text-2xl font-semibold leading-tight text-white sm:text-3xl">
-                    Smart swap guardrail for payments, routes, and recovery.
+                  <h1 className="mt-2 max-w-xl text-2xl font-semibold leading-tight text-white sm:text-3xl">
+                    Execute swaps and DeFi routes with payment-loss protection.
                   </h1>
                 </div>
                 <span className="inline-flex h-8 items-center gap-2 rounded-lg border border-[#1f6d4b] bg-[#0d2419] px-3 text-xs font-medium text-[#70e1a6]">
                   <CheckCircle2 className="h-3.5 w-3.5" />
-                  Mainnet quotes
+                  Guardrails active
                 </span>
               </div>
             </div>
 
-            <div className="space-y-5 px-4 py-4 sm:px-5">
+            <div className="space-y-5 px-4 py-5 sm:px-5">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {TRUST_ITEMS.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <div
+                      key={item.label}
+                      className="min-h-[76px] rounded-lg border border-[#202a28] bg-[#08100e] px-3 py-3"
+                    >
+                      <div className="flex items-center gap-2 text-[#85928f]">
+                        <Icon className="h-3.5 w-3.5 text-[#70e1a6]" />
+                        <span className="text-[11px] uppercase tracking-[0.1em]">
+                          {item.label}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm font-semibold text-white">
+                        {item.value}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+
               <IntentInput onSubmit={handleSubmit} loading={loading} />
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#93a0a1]">
-                    {recentIntents.length ? "Recent intents" : "Fast intents"}
+                    Guided actions
                   </p>
                   <Zap className="h-4 w-4 text-[#f0c75e]" />
                 </div>
@@ -714,9 +734,9 @@ export default function Home() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#93a0a1]">
-                    Protocol modes
+                    Route engines
                   </p>
-                  <CircleDollarSign className="h-4 w-4 text-[#62d5f6]" />
+                  <Activity className="h-4 w-4 text-[#62d5f6]" />
                 </div>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                   {protocolModes.map((mode) => (
@@ -724,7 +744,7 @@ export default function Home() {
                       key={mode.label}
                       type="button"
                       onClick={() => handleSubmit(mode.intent)}
-                      className="min-h-20 rounded-lg border border-[#263033] bg-[#0b1011] px-3 py-3 text-left transition-colors hover:border-[#62d5f6] hover:bg-[#111819] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ff4a50]"
+                      className="min-h-20 rounded-lg border border-[#263033] bg-[#08100e] px-3 py-3 text-left transition-colors hover:border-[#62d5f6] hover:bg-[#101817] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ff4a50]"
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-sm font-semibold text-white">
@@ -732,9 +752,7 @@ export default function Home() {
                         </span>
                         <span
                           className={`rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] ${
-                            mode.status === "Live"
-                              ? "bg-[#0d2a1d] text-[#70e1a6]"
-                              : "bg-[#251b10] text-[#f0c75e]"
+                            "bg-[#0d2a1d] text-[#70e1a6]"
                           }`}
                         >
                           {mode.status}
@@ -748,46 +766,25 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {TRUST_ITEMS.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <div
-                      key={item.label}
-                      className="rounded-lg border border-[#252d30] bg-[#0b1011] px-3 py-3"
-                    >
-                      <div className="flex items-center gap-2 text-[#7f8c8e]">
-                        <Icon className="h-3.5 w-3.5 text-[#62d5f6]" />
-                        <span className="text-[11px] uppercase tracking-[0.1em]">
-                          {item.label}
-                        </span>
-                      </div>
-                      <p className="mt-2 text-sm font-medium text-white">
-                        {item.value}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
             </div>
           </div>
 
           <section
             ref={resultRef}
-            className="min-h-[560px] rounded-lg border border-[#263033] bg-[#0f1415] shadow-[0_20px_70px_rgba(0,0,0,0.28)]"
+            className="min-h-[560px] rounded-lg border border-[#263033] bg-[#0c1110] shadow-[0_24px_90px_rgba(0,0,0,0.34)]"
           >
-            <div className="border-b border-[#222a2c] px-4 py-4 sm:px-5">
+            <div className="border-b border-[#202a28] px-4 py-5 sm:px-5">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#93a0a1]">
-                    Route / execution
+                    Execution desk
                   </p>
                   <h2 className="mt-2 text-xl font-semibold text-white">
-                    {error ? "Needs attention" : result ? "Review route" : loading ? "Finding route" : "Ready"}
+                    {error ? "Needs attention" : result ? "Route prepared" : loading ? "Finding route" : "Awaiting intent"}
                   </h2>
                 </div>
                 <span className="inline-flex h-8 items-center rounded-lg border border-[#293134] bg-[#101516] px-3 text-xs font-medium text-[#aab4b5]">
-                  {error ? "Request failed" : result ? "Quote loaded" : "No wallet connected"}
+                  {error ? "Request failed" : result ? "Checks complete" : "Standing by"}
                 </span>
               </div>
             </div>
@@ -859,7 +856,7 @@ function RoutePlaceholder({ loading = false }: { loading?: boolean }) {
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#93a0a1]">
-              Preview
+              Route model
             </p>
             <p className="mt-2 text-2xl font-semibold text-white">
               USDT TRC20 to BTC

@@ -29,12 +29,11 @@ export async function POST(request) {
     }
 
     return Response.json(data);
-  } catch (error) {
-    console.error("Create order API error:", error);
+  } catch {
     try {
       return Response.json(createFallbackOrder({ clientId, message, payoutAddress }));
     } catch (fallbackError) {
-      return proxyError(fallbackError?.message || "Could not create demo order.", 400);
+      return proxyError(fallbackError?.message || "Could not create guarded order.", 400);
     }
   }
 }

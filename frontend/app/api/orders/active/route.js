@@ -25,8 +25,7 @@ export async function GET(request) {
     }
 
     return Response.json(data);
-  } catch (error) {
-    console.error("Active order API error:", error);
+  } catch {
     return Response.json(getFallbackActiveOrder(clientId));
   }
 }

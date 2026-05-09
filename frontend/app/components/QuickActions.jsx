@@ -15,7 +15,7 @@ const DEFAULT_QUICK_ACTIONS = [
   { label: "Safety Check", value: "Check BTC payout address", icon: ShieldCheck, action: "safety-check" },
   { label: "Earn / Drift", value: "Long SOL with 2x", icon: Landmark, action: "drift-preview" },
   { label: "Solana Route", value: "Swap 1 SOL to USDC", icon: Activity },
-  { label: "Smart Rate", value: "Rate USDT to BTC", icon: ArrowRightLeft },
+  { label: "ERC20 Guard", value: "Swap 60 USDT ERC20 to BTC", icon: ArrowRightLeft },
 ];
 
 export default function QuickActions({ onSelect, onAction, recentIntents }) {
@@ -44,9 +44,11 @@ export default function QuickActions({ onSelect, onAction, recentIntents }) {
             key={action.value}
             onClick={() => action.action ? onAction?.(action.action) : onSelect(action.value)}
             type="button"
-            className="group flex min-h-11 items-center gap-2 rounded-lg border border-[#263033] bg-[#0b1011] px-3 py-2 text-left text-sm font-medium text-[#c5ced0] transition-colors hover:border-[#62d5f6] hover:bg-[#111819] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ff4a50]"
+            className="group flex min-h-[52px] items-center gap-3 rounded-lg border border-[#263033] bg-[#08100e] px-3 py-2 text-left text-sm font-semibold text-[#d6dfdd] transition-colors hover:border-[#70e1a6] hover:bg-[#101817] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ff4a50]"
           >
-            <Icon className="h-4 w-4 flex-none text-[#ff4a50]" />
+            <span className="flex h-8 w-8 flex-none items-center justify-center rounded-lg border border-[#263033] bg-[#101817]">
+              <Icon className="h-4 w-4 text-[#ff6268]" />
+            </span>
             <span className="truncate">{action.label}</span>
           </button>
         );

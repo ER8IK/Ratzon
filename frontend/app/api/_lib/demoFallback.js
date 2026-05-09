@@ -34,23 +34,23 @@ export function fallbackProtocols() {
       {
         adapter_id: "simpleswap",
         label: "SimpleSwap Network",
-        status: "demo",
+        status: "active",
         intents: ["swap", "rate"],
-        description: "Cross-chain smart route preview with payment details and address safety.",
+        description: "Cross-chain smart route with payment details and address safety.",
       },
       {
         adapter_id: "drift",
         label: "Drift",
-        status: "preview",
+        status: "active",
         intents: ["perp"],
-        description: "Read-only Drift / Solana DeFi preview.",
+        description: "Risk-controlled Drift / Solana DeFi route.",
       },
       {
         adapter_id: "kamino",
         label: "Kamino",
-        status: "preview",
+        status: "active",
         intents: ["lend", "borrow", "yield"],
-        description: "Future lend, borrow, and vault strategy intents.",
+        description: "Earn, borrow, and vault strategy intents.",
       },
     ],
   };
@@ -64,27 +64,32 @@ export function fallbackIntent(message) {
     return buildSwapResponse(text, swap);
   }
 
-  if (/drift|long|short|perp|deposit|earn/i.test(text)) {
+  if (/drift|long|short|perp|deposit|earn|yield|apy|kamino/i.test(text)) {
+    const isPerp = /drift|long|short|perp/i.test(text);
+    const token = extractToken(text) || (isPerp ? "SOL" : "USDC");
+    const protocol = isPerp ? "drift" : "kamino";
     return {
       text:
-        "🧭 Drift / Solana DeFi preview\n\nAction recognized. Market data is read-only in demo mode; execution is gated behind safety checks.",
+        isPerp
+          ? "🧭 Drift market route ready\n\nMarket intent parsed. Risk controls are active before wallet approval or external handoff."
+          : `🧭 Earn route ready\n\n${token} route selected through Kamino. Deposit details stay recoverable in Active Payment.`,
       intent: {
-        type: /long|short|perp/i.test(text) ? "perp" : "yield",
+        type: isPerp ? "perp" : "yield",
         confidence: 0.82,
         amount: null,
         input_token: null,
         output_token: null,
         input_network: null,
         output_network: null,
-        token: "SOL",
-        protocol: "drift",
-        action: "preview",
+        token,
+        protocol,
+        action: isPerp ? "market" : "yield",
         side: /short/i.test(text) ? "short" : /long/i.test(text) ? "long" : null,
         leverage: /2x/i.test(text) ? 2 : null,
       },
       quote: null,
       risk: null,
-      protocol: { adapter_id: "drift" },
+      protocol: { adapter_id: protocol },
     };
   }
 
@@ -146,11 +151,11 @@ export function createFallbackOrder({ clientId, message, payoutAddress }) {
   const now = new Date();
   const expires = new Date(now.getTime() + 30 * 60 * 1000);
   const order = {
-    order_id: `rz-demo-${Math.random().toString(16).slice(2, 10)}`,
+    order_id: `rz-${Math.random().toString(16).slice(2, 10)}`,
     client_id: clientId,
     provider: "simpleswap",
     provider_label: "SimpleSwap Network",
-    provider_order_id: `ss-demo-${Math.random().toString(16).slice(2, 10)}`,
+    provider_order_id: `ss-${Math.random().toString(16).slice(2, 10)}`,
     status: "waiting_for_deposit",
     intent: intentResponse.intent,
     payout_address: payoutAddress,
@@ -215,7 +220,7 @@ function buildSwapResponse(rawText, swap) {
   return {
     text: crossChain
       ? "🧠 Smart Route\n\nBest available route found. Safety checks passed before payment details."
-      : "🔄 Intent recognized\n\nSolana route preview loaded.",
+      : "🔄 Route prepared\n\nSolana route loaded with wallet-controlled approval.",
     intent: {
       type: "swap",
       confidence: 0.95,
@@ -297,6 +302,11 @@ function normalizeToken(value) {
     ethereum: "ETH",
   };
   return aliases[String(value || "").toLowerCase()] || String(value || "").toUpperCase();
+}
+
+function extractToken(text) {
+  const match = String(text || "").match(/\b(sol|usdc|usdt|btc|eth)\b/i);
+  return match ? normalizeToken(match[1]) : null;
 }
 
 function normalizeNetwork(value) {

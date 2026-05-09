@@ -3,6 +3,7 @@
 import {
   AlertTriangle,
   ArrowRight,
+  BarChart3,
   CheckCircle2,
   ExternalLink,
   Fuel,
@@ -44,21 +45,46 @@ export default function ResultCard({
   const { intent, quote, risk } = result;
 
   if (!quote) {
+    const protocolName = formatProtocolName(result.protocol?.adapter_id || intent?.protocol);
+    const routeTitle = protocolName
+      ? `${protocolName} route ready`
+      : "Route ready";
+    const actionLabel = formatIntentAction(intent);
+
     return (
       <div className="space-y-4 p-4 sm:p-5">
-        <div className="rounded-lg border border-[#263033] bg-[#0b1011] p-4">
-          <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#93a0a1]">
-            <Route className="h-4 w-4 text-[#62d5f6]" />
-            Intent result
+        <div className="rounded-lg border border-[#263033] bg-[#08100e] p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#93a0a1]">
+                <BarChart3 className="h-4 w-4 text-[#70e1a6]" />
+                Guided route
+              </div>
+              <h3 className="text-xl font-semibold text-white">{routeTitle}</h3>
+              <p className="mt-2 text-sm leading-6 text-[#c5ced0]">{actionLabel}</p>
+            </div>
+            <span className="rounded-lg border border-[#1f6d4b] bg-[#0d2a1d] px-3 py-1 text-xs font-semibold text-[#70e1a6]">
+              Ready
+            </span>
           </div>
-          <p className="whitespace-pre-line text-sm leading-6 text-[#d7e0e1]">
+
+          <div className="mt-4 grid gap-2 sm:grid-cols-3">
+            {["Route selected", "Risk policy loaded", "Wallet approval required"].map((item) => (
+              <div key={item} className="rounded-lg border border-[#202a28] bg-[#0c1412] p-3">
+                <CheckCircle2 className="mb-2 h-4 w-4 text-[#70e1a6]" />
+                <p className="text-sm font-semibold text-white">{item}</p>
+              </div>
+            ))}
+          </div>
+
+          <p className="mt-4 whitespace-pre-line text-sm leading-6 text-[#d7e0e1]">
             {stripHtml(result.text || "No route data returned.")}
           </p>
         </div>
 
         <button
           onClick={onReset}
-          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-[#263033] bg-[#0b1011] px-4 py-2 text-sm font-semibold text-[#c5ced0] transition-colors hover:border-[#62d5f6] hover:text-white"
+          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-[#2a3633] bg-[#101817] px-4 py-2 text-sm font-semibold text-[#d6dfdd] transition-colors hover:border-[#70e1a6] hover:text-white"
         >
           <RefreshCcw className="h-4 w-4" />
           Reset
@@ -90,11 +116,11 @@ export default function ResultCard({
 
   return (
     <div className="space-y-4 p-4 sm:p-5">
-      <div className="route-map rounded-lg border border-[#222a2c] p-4">
+      <div className="route-map rounded-lg border border-[#202a28] p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#93a0a1]">
-              Intent recognized
+              Route prepared
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-2 text-2xl font-semibold text-white">
               <span>{intent?.amount || "--"} {intent?.input_token || "--"}</span>
@@ -132,7 +158,7 @@ export default function ResultCard({
         </div>
       </div>
 
-      <div className="rounded-lg border border-[#263033] bg-[#0b1011] p-4">
+      <div className="rounded-lg border border-[#263033] bg-[#08100e] p-4">
         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#93a0a1]">
           <Route className="h-4 w-4 text-[#62d5f6]" />
           Best route
@@ -147,7 +173,7 @@ export default function ResultCard({
         ) : null}
       </div>
 
-      <div className="rounded-lg border border-[#263033] bg-[#0b1011] p-4">
+      <div className="rounded-lg border border-[#263033] bg-[#08100e] p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#93a0a1]">
             <ShieldCheck className="h-4 w-4 text-[#62d5f6]" />
@@ -180,14 +206,14 @@ export default function ResultCard({
       </div>
 
       {isPaymentOrder ? (
-        <div className="space-y-4 rounded-lg border border-[#263033] bg-[#101516] p-4">
+        <div className="space-y-4 rounded-lg border border-[#263033] bg-[#0c1412] p-4">
           <div>
             <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#93a0a1]">
               <Wallet className="h-4 w-4 text-[#62d5f6]" />
               Smart order recovery
             </div>
             <p className="text-sm leading-6 text-[#c5ced0]">
-              Paste the payout address. Ratzon rejects wrong-network addresses before issuing payment details.
+              Paste the payout address. Ratzon blocks wrong-network addresses before issuing payment details.
             </p>
           </div>
 
@@ -225,7 +251,7 @@ export default function ResultCard({
             <button
               onClick={onCreateOrder}
               disabled={orderLoading || !addressReport?.compatible}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#e83a42] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#ff4a50] disabled:cursor-not-allowed disabled:bg-[#273034] disabled:text-[#68777c]"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#e83a42] px-4 py-2 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(232,58,66,0.22)] transition-colors hover:bg-[#ff4a50] disabled:cursor-not-allowed disabled:bg-[#273034] disabled:text-[#68777c]"
             >
               {orderLoading ? (
                 <>
@@ -241,7 +267,7 @@ export default function ResultCard({
             </button>
             <button
               onClick={onReset}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-[#263033] bg-[#0b1011] px-4 py-2 text-sm font-semibold text-[#c5ced0] transition-colors hover:border-[#62d5f6] hover:text-white"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-[#2a3633] bg-[#101817] px-4 py-2 text-sm font-semibold text-[#d6dfdd] transition-colors hover:border-[#70e1a6] hover:text-white"
             >
               <RefreshCcw className="h-4 w-4" />
               Reset
@@ -249,7 +275,7 @@ export default function ResultCard({
           </div>
         </div>
       ) : (
-      <div className="rounded-lg border border-[#263033] bg-[#101516] p-4">
+      <div className="rounded-lg border border-[#263033] bg-[#0c1412] p-4">
         <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#93a0a1]">
           <Wallet className="h-4 w-4 text-[#62d5f6]" />
           Wallet
@@ -369,9 +395,36 @@ function stripHtml(value) {
   return String(value).replace(/<[^>]+>/g, "");
 }
 
+function formatProtocolName(value) {
+  const names = {
+    drift: "Drift",
+    kamino: "Kamino",
+    "jito-marinade": "Jito / Marinade",
+    simpleswap: "SimpleSwap",
+    jupiter: "Jupiter",
+  };
+  return names[value] || value || "";
+}
+
+function formatIntentAction(intent) {
+  const amount = intent?.amount ? `${intent.amount} ` : "";
+  const token = intent?.token || intent?.input_token || "";
+  const action = intent?.action || intent?.type || "route";
+  const side = intent?.side ? ` ${intent.side}` : "";
+  const leverage = intent?.leverage ? ` ${intent.leverage}x` : "";
+
+  if (intent?.type === "yield") {
+    return `Earn route for ${token || "selected asset"}`;
+  }
+  if (intent?.type === "perp") {
+    return `Market route${side}${token ? ` ${token}` : ""}${leverage}`;
+  }
+  return `${amount}${action}${token ? ` ${token}` : ""}`.trim();
+}
+
 function MetricTile({ icon: Icon, label, value, suffix = "" }) {
   return (
-    <div className="min-h-[82px] rounded-lg border border-white/10 bg-white/[0.06] p-3">
+    <div className="min-h-[82px] rounded-lg border border-white/10 bg-white/[0.045] p-3">
       <div className="flex items-center gap-1.5 text-[#8d9a9f]">
         <Icon className="h-3.5 w-3.5 text-[#62d5f6]" />
         <span>{label}</span>

@@ -67,24 +67,26 @@ export default function IntentInput({ onSubmit, loading }) {
           htmlFor="intent-input"
           className="text-xs font-semibold uppercase tracking-[0.14em] text-[#93a0a1]"
         >
-          Intent
+          Natural language command
         </label>
-        <span className="text-xs text-[#7f8c8e]">Ready</span>
+        <span className="rounded-md border border-[#254235] bg-[#0c2118] px-2 py-1 text-xs font-semibold text-[#70e1a6]">
+          Protected
+        </span>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-[#283235] bg-[#0b1011] transition-colors focus-within:border-[#ff4a50] focus-within:ring-4 focus-within:ring-[#ff4a50]/10">
+      <div className="overflow-hidden rounded-lg border border-[#2a3633] bg-[#060b0a] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-colors focus-within:border-[#70e1a6] focus-within:ring-4 focus-within:ring-[#70e1a6]/10">
         <textarea
           id="intent-input"
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder='Try "Swap 1 SOL to USDC"'
+          placeholder='Try "Swap 50 USDT TRC20 to BTC"'
           rows={5}
           disabled={loading}
-          className="min-h-[156px] w-full resize-none bg-transparent px-4 py-4 text-base leading-6 text-[#f6f8f7] outline-none placeholder:text-[#637174] disabled:cursor-not-allowed disabled:opacity-60"
+          className="min-h-[148px] w-full resize-none bg-transparent px-4 py-4 text-base leading-6 text-[#f6f8f7] outline-none placeholder:text-[#637174] disabled:cursor-not-allowed disabled:opacity-60"
         />
 
-        <div className="flex items-center justify-between gap-3 border-t border-[#222a2c] bg-[#0d1213] px-3 py-3">
+        <div className="flex items-center justify-between gap-3 border-t border-[#202a28] bg-[#09110f] px-3 py-3">
           <div className="flex min-w-0 items-center gap-2 text-xs font-medium text-[#9da8a9]">
             <span
               className={`h-2 w-2 flex-none rounded-full ${
@@ -103,7 +105,7 @@ export default function IntentInput({ onSubmit, loading }) {
               className={`flex h-10 w-10 items-center justify-center rounded-lg border transition-colors ${
                 recording
                   ? "border-[#ff4a50] bg-[#e83a42] text-white"
-                  : "border-[#283235] bg-[#121819] text-[#9da8a9] hover:border-[#62d5f6] hover:text-white"
+                  : "border-[#2a3633] bg-[#101817] text-[#9da8a9] hover:border-[#62d5f6] hover:text-white"
               }`}
             >
               <Mic className="h-4 w-4" />
@@ -115,7 +117,7 @@ export default function IntentInput({ onSubmit, loading }) {
               aria-label="Submit intent"
               title="Submit intent"
               disabled={!text.trim() || loading}
-              className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#e83a42] text-white transition-colors hover:bg-[#ff4a50] disabled:cursor-not-allowed disabled:bg-[#273034] disabled:text-[#68777c]"
+              className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#e83a42] text-white shadow-[0_12px_28px_rgba(232,58,66,0.22)] transition-colors hover:bg-[#ff4a50] disabled:cursor-not-allowed disabled:bg-[#273034] disabled:text-[#68777c]"
             >
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

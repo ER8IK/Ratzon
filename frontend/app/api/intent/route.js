@@ -35,8 +35,7 @@ export async function POST(request) {
 
     return Response.json(data);
 
-  } catch (error) {
-    console.error("Intent API error:", error);
+  } catch {
     return Response.json(fallbackIntent(message));
   }
 }

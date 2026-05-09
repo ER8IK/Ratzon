@@ -11,8 +11,10 @@ export default function ActivePaymentPanel({
 }) {
   const details = order?.payment_details;
 
+  const status = order ? formatStatus(order.status) : "Ready";
+
   return (
-    <div className="rounded-lg border border-[#263033] bg-[#0b1011] p-4">
+    <div className="rounded-lg border border-[#263033] bg-[#08100e] p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#93a0a1]">
           <Wallet className="h-4 w-4 text-[#62d5f6]" />
@@ -22,10 +24,10 @@ export default function ActivePaymentPanel({
           className={`rounded-lg border px-3 py-1 text-xs font-semibold ${
             order
               ? "border-[#1f6d4b] bg-[#0d2a1d] text-[#70e1a6]"
-              : "border-[#293134] bg-[#101516] text-[#aab4b5]"
+              : "border-[#2f433b] bg-[#101817] text-[#c8d4d1]"
           }`}
         >
-          {order ? order.status.replaceAll("_", " ") : "No active order"}
+          {status}
         </span>
       </div>
 
@@ -38,7 +40,7 @@ export default function ActivePaymentPanel({
             <Detail label="Provider" value={order.provider_label} />
           </div>
 
-          <div className="rounded-lg border border-[#222a2c] bg-[#101516] p-3">
+          <div className="rounded-lg border border-[#202a28] bg-[#0c1412] p-3">
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#93a0a1]">
               Payment address
             </p>
@@ -52,7 +54,7 @@ export default function ActivePaymentPanel({
         </div>
       ) : (
         <p className="mt-3 text-sm leading-6 text-[#aab4b5]">
-          Payment details will stay recoverable here after a guarded order is created.
+          Payment details stay recoverable here after a guarded order is created.
         </p>
       )}
 
@@ -71,7 +73,7 @@ export default function ActivePaymentPanel({
           type="button"
           onClick={onView}
           disabled={loading}
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-[#263033] bg-[#101516] px-4 text-sm font-semibold text-[#c5ced0] transition-colors hover:border-[#62d5f6] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-[#2a3633] bg-[#101817] px-4 text-sm font-semibold text-[#d6dfdd] transition-colors hover:border-[#70e1a6] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
           View payment details
@@ -80,7 +82,7 @@ export default function ActivePaymentPanel({
           type="button"
           onClick={onRefresh}
           disabled={loading || !order}
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-[#263033] bg-[#101516] px-4 text-sm font-semibold text-[#c5ced0] transition-colors hover:border-[#62d5f6] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-[#2a3633] bg-[#101817] px-4 text-sm font-semibold text-[#d6dfdd] transition-colors hover:border-[#70e1a6] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
         >
           <RefreshCcw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           Refresh status
@@ -92,7 +94,7 @@ export default function ActivePaymentPanel({
 
 function Detail({ label, value, mono = false }) {
   return (
-    <div className="rounded-lg border border-[#222a2c] bg-[#101516] p-3">
+    <div className="rounded-lg border border-[#202a28] bg-[#0c1412] p-3">
       <p className="text-[11px] uppercase tracking-[0.12em] text-[#93a0a1]">
         {label}
       </p>
@@ -101,6 +103,12 @@ function Detail({ label, value, mono = false }) {
       </p>
     </div>
   );
+}
+
+function formatStatus(value) {
+  return String(value || "Ready")
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function formatDate(value) {

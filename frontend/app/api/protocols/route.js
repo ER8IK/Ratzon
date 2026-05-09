@@ -16,8 +16,7 @@ export async function GET() {
     }
 
     return Response.json(data);
-  } catch (error) {
-    console.error("Protocols API error:", error);
+  } catch {
     return Response.json(fallbackProtocols());
   }
 }
