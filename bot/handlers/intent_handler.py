@@ -309,7 +309,7 @@ def _deserialize_intent(data: dict) -> SwapIntent:
 def _web_app_intent_url(raw_text: str) -> str:
     web_app_url = get_config().web_app_url or "https://ratzon.vercel.app"
     separator = "&" if "?" in web_app_url else "?"
-    return f"{web_app_url}{separator}{urlencode({'intent': raw_text})}"
+    return f"{web_app_url}{separator}{urlencode({'intent': raw_text, 'execute': '1'})}"
 
 
 def _serialize_quote(quote) -> dict:
