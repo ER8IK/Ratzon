@@ -1,4 +1,5 @@
 import { getBotApiUrl, proxyError, readJsonResponse } from "../_lib/botApi";
+import { fallbackProtocols } from "../_lib/demoFallback";
 
 export const dynamic = "force-dynamic";
 
@@ -17,8 +18,6 @@ export async function GET() {
     return Response.json(data);
   } catch (error) {
     console.error("Protocols API error:", error);
-    return proxyError(
-      error?.message || "Bot API is unavailable. Check BOT_API_URL and bot service logs.",
-    );
+    return Response.json(fallbackProtocols());
   }
 }

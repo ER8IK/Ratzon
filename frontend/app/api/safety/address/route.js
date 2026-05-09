@@ -1,9 +1,13 @@
 import { getBotApiUrl, proxyError, readJsonResponse } from "../../_lib/botApi";
+import { checkAddress } from "../../_lib/demoFallback";
 
 export async function POST(request) {
+  let address = "";
+  let expectedNetwork = null;
   try {
     const body = await request.json();
-    const { address, expectedNetwork } = body;
+    address = body?.address || "";
+    expectedNetwork = body?.expectedNetwork || null;
 
     const botApiUrl = getBotApiUrl();
     const res = await fetch(`${botApiUrl}/safety/address`, {
@@ -24,8 +28,6 @@ export async function POST(request) {
     return Response.json(data);
   } catch (error) {
     console.error("Address safety API error:", error);
-    return proxyError(
-      error?.message || "Bot API is unavailable. Check BOT_API_URL and bot service logs.",
-    );
+    return Response.json(checkAddress(address, expectedNetwork));
   }
 }
