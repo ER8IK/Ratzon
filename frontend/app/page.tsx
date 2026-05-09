@@ -58,12 +58,14 @@ function isTelegramWebView() {
   }
 
   const browserWindow = window as typeof window & {
-    Telegram?: unknown;
+    Telegram?: { WebApp?: unknown };
   };
+  const userAgent = navigator.userAgent;
 
   return Boolean(
-    browserWindow.Telegram ||
-      /Telegram|TelegramBot|TMA|WebApp/i.test(navigator.userAgent),
+    browserWindow.Telegram?.WebApp ||
+      browserWindow.Telegram ||
+      /Telegram|TelegramBot|TMA|TgWebView|TelegramWebView/i.test(userAgent),
   );
 }
 
@@ -206,11 +208,6 @@ export default function Home() {
       const provider = getPhantomProvider();
       const inTelegramWebView = isTelegramWebView();
 
-      if (!provider && isMobileDevice() && !inTelegramWebView) {
-        window.location.assign(buildPhantomBrowseUrl());
-        return;
-      }
-
       let walletForSwap = wallet.trim();
       if (provider) {
         walletForSwap = await connectInjectedPhantom(provider);
@@ -260,9 +257,7 @@ export default function Home() {
         return;
       }
 
-      throw new Error(
-        "Phantom extension was not detected in this browser tab. Enable Phantom in Brave, refresh, and try again.",
-      );
+      return;
     } catch (e: any) {
       setConfirmError(e?.message || "Could not prepare Phantom transaction.");
     } finally {
