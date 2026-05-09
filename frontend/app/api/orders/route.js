@@ -1,5 +1,5 @@
 import { getBotApiUrl, proxyError, readJsonResponse } from "../_lib/botApi";
-import { createFallbackOrder } from "../_lib/demoFallback";
+import { createFallbackOrder } from "../_lib/localFallback";
 
 export async function POST(request) {
   let clientId = "";

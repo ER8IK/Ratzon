@@ -81,7 +81,7 @@ corepack pnpm start
 
 Set `QVAC_URL=http://localhost:3000` for local bot runs. See
 [`qvac_service/README.md`](qvac_service/README.md) for health checks and sample
-requests.
+requests. For full pitch/runtime validation, use [`docs/runtime-checklist.md`](docs/runtime-checklist.md).
 
 ### 3. Start Python bot
 
@@ -166,10 +166,10 @@ Ratzon now has a protocol router between parsed intents and protocol clients:
 | Adapter | Status | Role |
 |---------|--------|------|
 | Jupiter | Live | Swap quotes, swap transactions, token rates |
-| SimpleSwap Network | Active | Cross-chain smart route, dynamic minimum, recoverable payment details |
-| Kamino | Active | Lend, borrow, vault/yield intents |
-| Drift | Active | Perps and advanced trading intents |
-| Jito / Marinade | Active | Staking and liquid staking intents |
+| SimpleSwap Network | Guarded | Cross-chain smart route, dynamic minimum, recoverable payment details |
+| Kamino | Guarded | Lend, borrow, vault/yield intents |
+| Drift | Guarded | Perps and advanced trading intents |
+| Jito / Marinade | Guarded | Staking and liquid staking intents |
 
 QVAC decides what the user wants. The protocol router decides which adapter
 should handle it. Jupiter remains the default live swap adapter while Smart Swap
@@ -194,7 +194,7 @@ The pitch scenario includes a safety layer focused on preventing payment losses:
 | Address/network safety checks | ✅ Real |
 | QVAC LLM parser | ✅ Real |
 | QVAC Whisper STT | ✅ Real |
-| SimpleSwap order recovery | ✅ Active |
+| SimpleSwap order recovery | ✅ Guarded |
 | Transaction signing | ✅ Wallet-controlled |
 
 ---

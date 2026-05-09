@@ -11,7 +11,7 @@ export default function ActivePaymentPanel({
 }) {
   const details = order?.payment_details;
 
-  const status = order ? formatStatus(order.status) : "Ready";
+  const status = order ? formatStatus(order.status) : "No active order";
 
   return (
     <div className="rounded-lg border border-[#263033] bg-[#08100e] p-4">
@@ -106,7 +106,7 @@ function Detail({ label, value, mono = false }) {
 }
 
 function formatStatus(value) {
-  return String(value || "Ready")
+  return String(value || "Unknown")
     .replaceAll("_", " ")
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }

@@ -72,7 +72,7 @@ class IntentParser:
         return intent
 
     def parse_sync(self, text: str) -> AnyIntent:
-        """Синхронный парсинг только через regex (для /demo команды)."""
+        """Синхронный парсинг только через regex (для /tour команды)."""
         t = text.strip()
         return self._parse_regex(t, t.lower())
 

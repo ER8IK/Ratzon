@@ -1,5 +1,5 @@
 import { getBotApiUrl, proxyError, readJsonResponse } from "../_lib/botApi";
-import { fallbackProtocols } from "../_lib/demoFallback";
+import { fallbackProtocols } from "../_lib/localFallback";
 
 export const dynamic = "force-dynamic";
 

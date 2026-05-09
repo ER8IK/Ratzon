@@ -1,5 +1,5 @@
 import { getBotApiUrl, proxyError, readJsonResponse } from "../../_lib/botApi";
-import { checkAddress } from "../../_lib/demoFallback";
+import { checkAddress } from "../../_lib/localFallback";
 
 export async function POST(request) {
   let address = "";

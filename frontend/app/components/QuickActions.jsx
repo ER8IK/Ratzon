@@ -13,7 +13,7 @@ const DEFAULT_QUICK_ACTIONS = [
   { label: "Smart Swap", value: "Swap 50 USDT TRC20 to BTC", icon: ArrowRightLeft },
   { label: "Active Payment", value: "View payment details", icon: Wallet, action: "active-payment" },
   { label: "Safety Check", value: "Check BTC payout address", icon: ShieldCheck, action: "safety-check" },
-  { label: "Earn / Drift", value: "Long SOL with 2x", icon: Landmark, action: "drift-preview" },
+  { label: "Earn / Drift", value: "Long SOL with 2x", icon: Landmark, action: "drift-route" },
   { label: "Solana Route", value: "Swap 1 SOL to USDC", icon: Activity },
   { label: "ERC20 Guard", value: "Swap 60 USDT ERC20 to BTC", icon: ArrowRightLeft },
 ];
