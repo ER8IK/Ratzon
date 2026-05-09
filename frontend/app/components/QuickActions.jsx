@@ -1,5 +1,7 @@
 "use client";
 
+import ButtonBase from "@mui/material/ButtonBase";
+import Tooltip from "@mui/material/Tooltip";
 import {
   ArrowRightLeft,
   Activity,
@@ -37,22 +39,60 @@ export default function QuickActions({ onSelect, onAction, recentIntents }) {
       {actions.map((action) => {
         const Icon = action.icon;
         return (
-          <button
+          <Tooltip
             key={action.value}
-            onClick={() => action.action ? onAction?.(action.action) : onSelect(action.value)}
-            type="button"
-            className="group flex min-h-[70px] items-center gap-3 rounded-lg border border-[#263033] bg-[#08100e] px-3 py-3 text-left text-sm font-semibold text-[#d6dfdd] transition-colors hover:border-[#70e1a6] hover:bg-[#101817] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ff4a50]"
+            title={action.value}
+            arrow
+            placement="top"
+            slotProps={{
+              tooltip: {
+                sx: {
+                  border: "1px solid #263033",
+                  backgroundColor: "#0c1110",
+                  color: "#f6f8f7",
+                  fontFamily: "inherit",
+                  fontSize: 12,
+                },
+              },
+              arrow: { sx: { color: "#0c1110" } },
+            }}
           >
-            <span className="flex h-8 w-8 flex-none items-center justify-center rounded-lg border border-[#263033] bg-[#101817]">
-              <Icon className="h-4 w-4 text-[#ff6268]" />
-            </span>
-            <span className="min-w-0">
-              <span className="block truncate">{action.label}</span>
-              <span className="mt-1 block truncate text-xs font-medium text-[#8e9a9c]">
-                {action.value}
+            <ButtonBase
+              onClick={() => action.action ? onAction?.(action.action) : onSelect(action.value)}
+              type="button"
+              className="group flex min-h-[70px] w-full items-center gap-3 rounded-lg border border-[#263033] bg-[#08100e] px-3 py-3 text-left text-sm font-semibold text-[#d6dfdd] transition-colors hover:border-[#70e1a6] hover:bg-[#101817] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ff4a50]"
+              sx={{
+                justifyContent: "flex-start",
+                minHeight: 70,
+                width: "100%",
+                borderRadius: "8px",
+                border: "1px solid #263033",
+                backgroundColor: "#08100e",
+                color: "#d6dfdd",
+                fontFamily: "inherit",
+                fontSize: "0.875rem",
+                fontWeight: 700,
+                padding: "12px",
+                textAlign: "left",
+                transition: "border-color 160ms ease, background-color 160ms ease, color 160ms ease",
+                "&:hover": {
+                  borderColor: "#70e1a6",
+                  backgroundColor: "#101817",
+                  color: "#ffffff",
+                },
+              }}
+            >
+              <span className="flex h-8 w-8 flex-none items-center justify-center rounded-lg border border-[#263033] bg-[#101817]">
+                <Icon className="h-4 w-4 text-[#ff6268]" />
               </span>
-            </span>
-          </button>
+              <span className="min-w-0">
+                <span className="block truncate">{action.label}</span>
+                <span className="mt-1 block truncate text-xs font-medium text-[#8e9a9c]">
+                  {action.value}
+                </span>
+              </span>
+            </ButtonBase>
+          </Tooltip>
         );
       })}
     </div>
