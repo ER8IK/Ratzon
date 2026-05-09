@@ -78,8 +78,12 @@ function decodeBase64Transaction(transaction: string) {
   return bytes;
 }
 
-function buildPhantomBrowseUrl() {
-  const targetUrl = window.location.href;
+function buildPhantomBrowseUrl(intent?: string) {
+  const target = new URL(window.location.pathname || "/", window.location.origin);
+  if (intent?.trim()) {
+    target.searchParams.set("intent", intent.trim());
+  }
+  const targetUrl = target.toString();
   const refUrl = window.location.origin;
   return `https://phantom.app/ul/browse/${encodeURIComponent(targetUrl)}?ref=${encodeURIComponent(refUrl)}`;
 }
@@ -102,6 +106,23 @@ async function signWithInjectedPhantom(provider: any, transaction: string) {
     result?.hash ||
     (typeof result === "string" ? result : null)
   );
+}
+
+function openWalletLink(url: string) {
+  const browserWindow = window as typeof window & {
+    Telegram?: {
+      WebApp?: {
+        openLink?: (url: string, options?: Record<string, unknown>) => void;
+      };
+    };
+  };
+
+  if (browserWindow.Telegram?.WebApp?.openLink) {
+    browserWindow.Telegram.WebApp.openLink(url, { try_instant_view: false });
+    return;
+  }
+
+  window.location.assign(url);
 }
 
 export default function Home() {
@@ -146,6 +167,21 @@ export default function Home() {
       behavior: prefersReducedMotion ? "auto" : "smooth",
     });
   }, [result, error]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const intent = params.get("intent");
+    if (!intent?.trim()) return;
+
+    handleSubmit(intent);
+    params.delete("intent");
+    const nextQuery = params.toString();
+    window.history.replaceState(
+      null,
+      "",
+      `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}`,
+    );
+  }, []);
 
   function rememberIntent(text: string) {
     const normalized = text.trim();
@@ -207,6 +243,18 @@ export default function Home() {
     try {
       const provider = getPhantomProvider();
       const inTelegramWebView = isTelegramWebView();
+      const mobileDevice = isMobileDevice();
+
+      if (!provider && (mobileDevice || inTelegramWebView)) {
+        setPhantomUrl(buildPhantomBrowseUrl(lastQuery));
+        return;
+      }
+
+      if (!provider) {
+        throw new Error(
+          "Phantom extension was not detected in this browser tab. Enable Phantom, refresh, and try again.",
+        );
+      }
 
       let walletForSwap = wallet.trim();
       if (provider) {
@@ -223,7 +271,11 @@ export default function Home() {
       const res = await fetch("/api/swap", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: lastQuery, wallet: walletForSwap }),
+        body: JSON.stringify({
+          message: lastQuery,
+          wallet: walletForSwap,
+          appUrl: window.location.origin,
+        }),
       });
 
       if (!res.ok) {
@@ -250,9 +302,9 @@ export default function Home() {
         throw new Error("Phantom did not return a transaction signature.");
       }
 
-      if (isMobileDevice() && !inTelegramWebView) {
+      if (mobileDevice && !inTelegramWebView) {
         window.location.assign(
-          data.phantom_browse_url || buildPhantomBrowseUrl(),
+          data.phantom_browse_url || buildPhantomBrowseUrl(lastQuery),
         );
         return;
       }
@@ -440,7 +492,8 @@ export default function Home() {
                 confirmError={confirmError}
                 phantomUrl={phantomUrl}
                 txSignature={txSignature}
-                inTelegramWebView={isTelegramWebView()}
+                mobileWalletHandoff={isTelegramWebView() || isMobileDevice()}
+                onOpenWalletLink={openWalletLink}
                 onReset={() => {
                   setResult(null);
                   setWallet("");

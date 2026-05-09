@@ -11,6 +11,7 @@ import asyncio
 import json
 import logging
 import re
+from urllib.parse import urlparse
 from aiohttp import web
 
 from bot.intents.models import IntentType
@@ -18,9 +19,7 @@ from bot.intents.parser import intent_parser
 from bot.protocols import protocol_router
 from bot.services.dispatcher import intent_dispatcher
 from bot.solana.phantom import (
-    build_phantom_app_deeplink,
     build_phantom_browse_deeplink,
-    build_phantom_deeplink,
 )
 
 logger = logging.getLogger(__name__)
@@ -105,6 +104,7 @@ async def handle_swap(request: web.Request) -> web.Response:
         body = await request.json()
         message = body.get("message", "").strip()
         wallet = body.get("wallet", "").strip()
+        app_url = _safe_public_url(body.get("app_url"))
 
         if not message:
             return web.json_response(
@@ -139,11 +139,15 @@ async def handle_swap(request: web.Request) -> web.Response:
                 {"error": "Failed to prepare transaction"}, status=502
             )
 
+        phantom_browse_url = build_phantom_browse_deeplink(
+            url=app_url,
+            ref=app_url,
+        )
+
         return web.json_response({
             "transaction": tx_b64,
-            "phantom_url": build_phantom_deeplink(tx_b64),
-            "phantom_app_url": build_phantom_app_deeplink(tx_b64),
-            "phantom_browse_url": build_phantom_browse_deeplink(),
+            "phantom_url": phantom_browse_url,
+            "phantom_browse_url": phantom_browse_url,
         })
 
     except json.JSONDecodeError:
@@ -155,6 +159,17 @@ async def handle_swap(request: web.Request) -> web.Response:
 
 def _is_valid_wallet(address: str) -> bool:
     return bool(re.fullmatch(r"[1-9A-HJ-NP-Za-km-z]{32,44}", address))
+
+
+def _safe_public_url(value: str | None) -> str:
+    if not isinstance(value, str) or not value.strip():
+        return "https://ratzon.vercel.app"
+
+    parsed = urlparse(value.strip())
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return "https://ratzon.vercel.app"
+
+    return f"{parsed.scheme}://{parsed.netloc}"
 
 
 def _compute_route_quality(risk, quote) -> int | None:

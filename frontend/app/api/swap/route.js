@@ -3,7 +3,7 @@ import { getBotApiUrl, proxyError, readJsonResponse } from "../_lib/botApi";
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { message, wallet } = body;
+    const { message, wallet, appUrl } = body;
 
     if (!message || !wallet) {
       return Response.json({ error: "message and wallet are required" }, { status: 400 });
@@ -13,7 +13,7 @@ export async function POST(request) {
     const res = await fetch(`${botApiUrl}/swap`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message, wallet }),
+      body: JSON.stringify({ message, wallet, app_url: appUrl }),
       cache: "no-store",
     });
 

@@ -7,11 +7,13 @@
 import logging
 import io
 import re
+from urllib.parse import urlencode
 
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.fsm.context import FSMContext
 
+from bot.config import get_config
 from bot.intents.parser import intent_parser
 from bot.intents.llm_parser import llm_parser
 from bot.intents.models import IntentType, SwapIntent
@@ -211,7 +213,7 @@ async def handle_confirm_swap(callback: CallbackQuery, state: FSMContext):
         parse_mode="HTML",
     )
 
-    from bot.solana.phantom import build_phantom_deeplink, build_solflare_deeplink
+    from bot.solana.phantom import build_phantom_browse_deeplink, build_solflare_deeplink
 
     tx_b64 = await protocol_router.prepare_swap_transaction(
         raw_quote=quote_raw,
@@ -227,14 +229,16 @@ async def handle_confirm_swap(callback: CallbackQuery, state: FSMContext):
         )
         return
 
-    # Строим deeplink
-    phantom_url = build_phantom_deeplink(tx_b64)
     intent = _deserialize_intent(intent_data)
+    phantom_url = build_phantom_browse_deeplink(
+        url=_web_app_intent_url(intent.raw_text),
+        ref=get_config().web_app_url or "https://ratzon.vercel.app",
+    )
 
     from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
     keyboard = InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(
-            text="👻 Open in Phantom",
+            text="👻 Continue in Phantom Browser",
             url=phantom_url,
         ),
         InlineKeyboardButton(
@@ -247,7 +251,7 @@ async def handle_confirm_swap(callback: CallbackQuery, state: FSMContext):
         f"✅ <b>Transaction Ready</b>\n\n"
         f"Swap <b>{intent.amount:g} {intent.input_token}</b> → "
         f"<b>{intent.output_token}</b>\n\n"
-        f"Click the button to open your wallet and approve.\n\n"
+        f"Open Ratzon in Phantom Browser to connect, prepare, and approve from the wallet app.\n\n"
         f"<i>⚠️ Always verify the transaction details in your wallet before approving.</i>",
         parse_mode="HTML",
         reply_markup=keyboard,
@@ -300,6 +304,12 @@ def _deserialize_intent(data: dict) -> SwapIntent:
         output_token=data["output_token"],
         slippage_bps=data.get("slippage_bps", 50),
     )
+
+
+def _web_app_intent_url(raw_text: str) -> str:
+    web_app_url = get_config().web_app_url or "https://ratzon.vercel.app"
+    separator = "&" if "?" in web_app_url else "?"
+    return f"{web_app_url}{separator}{urlencode({'intent': raw_text})}"
 
 
 def _serialize_quote(quote) -> dict:
