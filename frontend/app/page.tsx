@@ -27,13 +27,14 @@ const TRUST_ITEMS = [
 
 const DEFAULT_PROTOCOL_MODES = [
   { label: "Swap", value: "Jupiter", status: "Live", intent: "Swap 1 SOL to USDC" },
-  { label: "Earn", value: "Kamino", status: "Next", intent: "Find best yield for USDC" },
-  { label: "Stake", value: "Jito", status: "Next", intent: "Stake 1 SOL" },
-  { label: "Trade", value: "Drift", status: "Next", intent: "Long SOL with 2x" },
+  { label: "Smart Swap", value: "SimpleSwap", status: "Demo", intent: "Swap 50 USDT TRC20 to BTC" },
+  { label: "Earn", value: "Kamino", status: "Preview", intent: "Find best yield for USDC" },
+  { label: "Trade", value: "Drift", status: "Preview", intent: "Long SOL with 2x" },
 ];
 
 const PROTOCOL_MODE_META: Record<string, { label: string; intent: string }> = {
   jupiter: { label: "Swap", intent: "Swap 1 SOL to USDC" },
+  simpleswap: { label: "Smart Swap", intent: "Swap 50 USDT TRC20 to BTC" },
   kamino: { label: "Earn", intent: "Find best yield for USDC" },
   "jito-marinade": { label: "Stake", intent: "Stake 1 SOL" },
   drift: { label: "Trade", intent: "Long SOL with 2x" },
@@ -55,9 +56,15 @@ function protocolModeFromCapability(capability: any) {
   return {
     label: meta.label,
     value: capability.label,
-    status: capability.status === "live" ? "Live" : "Next",
+    status: protocolStatusLabel(capability.status),
     intent: meta.intent,
   };
+}
+
+function protocolStatusLabel(status: string) {
+  if (status === "live") return "Live";
+  if (status === "demo") return "Demo";
+  return "Preview";
 }
 
 function getPhantomProvider() {

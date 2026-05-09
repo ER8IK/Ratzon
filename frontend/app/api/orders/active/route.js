@@ -1,11 +1,13 @@
 import { getBotApiUrl, proxyError, readJsonResponse } from "../../_lib/botApi";
+import { getFallbackActiveOrder } from "../../_lib/demoFallback";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request) {
+  let clientId = "";
   try {
     const { searchParams } = new URL(request.url);
-    const clientId = searchParams.get("clientId");
+    clientId = searchParams.get("clientId") || "";
 
     if (!clientId) {
       return Response.json({ error: "clientId is required" }, { status: 400 });
@@ -25,8 +27,6 @@ export async function GET(request) {
     return Response.json(data);
   } catch (error) {
     console.error("Active order API error:", error);
-    return proxyError(
-      error?.message || "Bot API is unavailable. Check BOT_API_URL and bot service logs.",
-    );
+    return Response.json(getFallbackActiveOrder(clientId));
   }
 }

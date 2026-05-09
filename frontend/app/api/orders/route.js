@@ -1,9 +1,15 @@
 import { getBotApiUrl, proxyError, readJsonResponse } from "../_lib/botApi";
+import { createFallbackOrder } from "../_lib/demoFallback";
 
 export async function POST(request) {
+  let clientId = "";
+  let message = "";
+  let payoutAddress = "";
   try {
     const body = await request.json();
-    const { clientId, message, payoutAddress } = body;
+    clientId = body?.clientId || "";
+    message = body?.message || "";
+    payoutAddress = body?.payoutAddress || "";
 
     const botApiUrl = getBotApiUrl();
     const res = await fetch(`${botApiUrl}/orders`, {
@@ -25,8 +31,10 @@ export async function POST(request) {
     return Response.json(data);
   } catch (error) {
     console.error("Create order API error:", error);
-    return proxyError(
-      error?.message || "Bot API is unavailable. Check BOT_API_URL and bot service logs.",
-    );
+    try {
+      return Response.json(createFallbackOrder({ clientId, message, payoutAddress }));
+    } catch (fallbackError) {
+      return proxyError(fallbackError?.message || "Could not create demo order.", 400);
+    }
   }
 }

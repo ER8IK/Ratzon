@@ -5,11 +5,13 @@
  */
 
 import { getBotApiUrl, proxyError, readJsonResponse } from "../_lib/botApi";
+import { fallbackIntent } from "../_lib/demoFallback";
 
 export async function POST(request) {
+  let message = "";
   try {
     const body = await request.json();
-    const { message } = body;
+    message = body?.message || "";
 
     if (!message) {
       return Response.json({ error: "message required" }, { status: 400 });
@@ -35,8 +37,6 @@ export async function POST(request) {
 
   } catch (error) {
     console.error("Intent API error:", error);
-    return proxyError(
-      error?.message || "Bot API is unavailable. Check BOT_API_URL and bot service logs.",
-    );
+    return Response.json(fallbackIntent(message));
   }
 }
