@@ -54,7 +54,7 @@ export default function ActivePaymentPanel({
         </div>
       ) : (
         <p className="mt-3 text-sm leading-6 text-[#aab4b5]">
-          Payment details stay recoverable here after a guarded order is created.
+          No payment is active yet. After a Smart Swap order is created, the amount, network, address, memo/tag, and status stay here.
         </p>
       )}
 
