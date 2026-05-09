@@ -284,7 +284,7 @@ export default function Home() {
 
       if (!provider && allowMobileHandoff && (mobileDevice || inTelegramWebView)) {
         autoConfirmAttemptedRef.current = false;
-        setPendingPhantomExecution(true);
+        setPendingPhantomExecution(false);
         setPhantomUrl(buildPhantomBrowseUrl(lastQuery, true));
         return;
       }
