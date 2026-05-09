@@ -4,10 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import {
   Activity,
   AlertTriangle,
-  CheckCircle2,
   Loader2,
   Radio,
-  ShieldCheck,
   Wallet,
   Zap,
 } from "lucide-react";
@@ -17,13 +15,6 @@ import QuickActions from "@/components/QuickActions";
 import ActivePaymentPanel from "@/components/ActivePaymentPanel";
 import DriftPanel from "@/components/DriftPanel";
 import SafetyCheckPanel, { SAMPLE_ADDRESSES } from "@/components/SafetyCheckPanel";
-
-const TRUST_ITEMS = [
-  { label: "QVAC Core", value: "Integrated", icon: Radio },
-  { label: "Routing", value: "Multi-provider", icon: Activity },
-  { label: "Approvals", value: "Wallet-signed", icon: Wallet },
-  { label: "Guardrails", value: "Policy mesh", icon: ShieldCheck },
-];
 
 const DEFAULT_PROTOCOL_MODES = [
   { label: "Swap", value: "Jupiter", status: "Live", intent: "Swap 1 SOL to USDC" },
@@ -224,6 +215,7 @@ export default function Home() {
   const [orderLoading, setOrderLoading] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
   const resultRef = useRef<HTMLDivElement | null>(null);
+  const toolsRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     try {
@@ -514,17 +506,31 @@ export default function Home() {
   function handleQuickAction(action: string) {
     if (action === "active-payment") {
       loadActiveOrder();
+      scrollToTools();
       return;
     }
     if (action === "safety-check") {
       setSafetyExpectedNetwork("BTC");
       setSafetyAddress(SAMPLE_ADDRESSES.wrongErc20);
       setSafetyReport(null);
+      scrollToTools();
       return;
     }
     if (action === "drift-route") {
       handleSubmit("Long SOL with 2x");
     }
+  }
+
+  function scrollToTools() {
+    window.requestAnimationFrame(() => {
+      const prefersReducedMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+      toolsRef.current?.scrollIntoView({
+        block: "start",
+        behavior: prefersReducedMotion ? "auto" : "smooth",
+      });
+    });
   }
 
   async function handleConfirm(
@@ -659,81 +665,58 @@ export default function Home() {
       </header>
 
       <div className="mx-auto max-w-[1500px] px-4 py-5 sm:px-6 lg:px-8">
-        <section className="grid gap-5 xl:grid-cols-[minmax(0,740px)_minmax(460px,1fr)]">
+        <section className="grid gap-5 xl:grid-cols-[minmax(0,640px)_minmax(0,1fr)]">
           <div className="space-y-4">
             <section className="premium-panel p-5 shadow-[0_24px_90px_rgba(0,0,0,0.34)]">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="max-w-2xl">
+              <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_220px]">
+                <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#70e1a6]">
-                    Agentic Finance OS
+                    Start Here
                   </p>
-                  <h1 className="mt-3 text-[2rem] font-semibold leading-[1.04] text-white sm:text-[2.65rem]">
-                    One intent. Routed, checked, and recoverable.
+                  <h1 className="mt-3 text-[1.9rem] font-semibold leading-[1.06] text-white sm:text-[2.35rem]">
+                    Swap safely, check addresses, recover payments.
                   </h1>
-                  <p className="mt-3 max-w-xl text-sm leading-6 text-[#aebbb8]">
-                    Ratzon turns plain-language crypto requests into guarded routes with visible minimums, network checks, and payment recovery.
+                  <p className="mt-3 max-w-2xl text-sm leading-6 text-[#aebbb8]">
+                    Start with a command like <span className="font-semibold text-white">Swap 50 USDT TRC20 to BTC</span>. Ratzon shows the route, checks the destination network, and keeps payment details recoverable.
                   </p>
                 </div>
-                <span className="inline-flex h-9 items-center gap-2 rounded-lg border border-[#1f6d4b] bg-[#0d2419] px-3 text-xs font-semibold text-[#70e1a6]">
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  Safety mesh online
-                </span>
-              </div>
-
-              <div className="mt-5 rounded-lg border border-[#28463b] bg-[#081611] p-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="rounded-lg border border-[#28463b] bg-[#081611] p-4">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#2d5748] bg-[#0f241b]">
-                      <Radio className="h-4 w-4 text-[#70e1a6]" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-white">
-                        QVAC Intent Core integrated
-                      </p>
-                      <p className="text-xs leading-5 text-[#91a19d]">
-                        Local-first LLM parsing and voice intent processing are part of the execution layer.
+                    <Radio className="h-4 w-4 flex-none text-[#70e1a6]" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-white">QVAC integrated</p>
+                      <p className="mt-1 text-xs leading-5 text-[#91a19d]">
+                        Text and voice intents are parsed before routing.
                       </p>
                     </div>
                   </div>
-                  <span className="rounded-lg border border-[#263033] bg-[#101817] px-3 py-1 text-xs font-semibold text-[#d6dfdd]">
-                    AI route understanding
-                  </span>
+                  <div className="mt-3 rounded-lg border border-[#1f6d4b] bg-[#0d2419] px-3 py-2 text-xs font-semibold text-[#70e1a6]">
+                    Wrong-network protection is on
+                  </div>
                 </div>
               </div>
 
-              <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {TRUST_ITEMS.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <div
-                      key={item.label}
-                      className="min-h-[76px] rounded-lg border border-[#202a28] bg-[#08100e] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
-                    >
-                      <div className="flex items-center gap-2 text-[#85928f]">
-                        <Icon className="h-3.5 w-3.5 text-[#70e1a6]" />
-                        <span className="text-[11px] uppercase tracking-[0.1em]">
-                          {item.label}
-                        </span>
-                      </div>
-                      <p className="mt-2 text-sm font-semibold text-white">
-                        {item.value}
-                      </p>
-                    </div>
-                  );
-                })}
+              <div className="mt-5">
+                <IntentInput
+                  onSubmit={handleSubmit}
+                  loading={loading}
+                  label="1. Type a request"
+                  placeholder="Swap 50 USDT TRC20 to BTC"
+                />
               </div>
             </section>
 
-            <section className="premium-panel p-5 shadow-[0_24px_90px_rgba(0,0,0,0.26)]">
-              <IntentInput onSubmit={handleSubmit} loading={loading} />
-            </section>
-
             <section className="premium-panel p-5">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#93a0a1]">
-                  Guided actions
-                </p>
-                <Zap className="h-4 w-4 text-[#f0c75e]" />
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#93a0a1]">
+                    2. Choose a common action
+                  </p>
+                  <p className="mt-1 text-sm text-[#aab4b5]">
+                    Use these if you do not want to type from scratch.
+                  </p>
+                </div>
+                <Zap className="h-4 w-4 flex-none text-[#f0c75e]" />
               </div>
               <QuickActions
                 recentIntents={recentIntents}
@@ -741,72 +724,11 @@ export default function Home() {
                 onAction={handleQuickAction}
               />
             </section>
-
-            <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-              <ActivePaymentPanel
-                order={activeOrder}
-                loading={activeOrderLoading}
-                error={activeOrderError}
-                onView={() => loadActiveOrder()}
-                onRefresh={refreshActiveOrder}
-              />
-
-              <SafetyCheckPanel
-                expectedNetwork={safetyExpectedNetwork}
-                onExpectedNetworkChange={(value: string) => {
-                  setSafetyExpectedNetwork(value);
-                  setSafetyReport(null);
-                }}
-                address={safetyAddress}
-                onAddressChange={(value: string) => {
-                  setSafetyAddress(value);
-                  setSafetyReport(null);
-                }}
-                report={safetyReport}
-                loading={safetyLoading}
-                onCheck={() => runAddressCheck()}
-              />
-            </div>
-
-            <DriftPanel
-              onCheckMarket={() => handleSubmit("Long SOL with 2x")}
-            />
-
-            <section className="rounded-lg border border-[#263033] bg-[#0c1110] p-5">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#93a0a1]">
-                  Route engines
-                </p>
-                <Activity className="h-4 w-4 text-[#62d5f6]" />
-              </div>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {protocolModes.map((mode) => (
-                  <button
-                    key={mode.label}
-                    type="button"
-                    onClick={() => handleSubmit(mode.intent)}
-                    className="min-h-20 rounded-lg border border-[#263033] bg-[#08100e] px-3 py-3 text-left transition-colors hover:border-[#62d5f6] hover:bg-[#101817] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ff4a50]"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-semibold text-white">
-                        {mode.label}
-                      </span>
-                      <span className={`rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] ${statusBadgeClass(mode.status)}`}>
-                        {mode.status}
-                      </span>
-                    </div>
-                    <p className="mt-2 truncate text-xs text-[#93a0a1]">
-                      {mode.value}
-                    </p>
-                  </button>
-                ))}
-              </div>
-            </section>
           </div>
 
           <section
             ref={resultRef}
-            className="premium-panel min-h-[560px] shadow-[0_24px_90px_rgba(0,0,0,0.34)]"
+            className="premium-panel min-h-[560px] shadow-[0_24px_90px_rgba(0,0,0,0.34)] xl:sticky xl:top-24 xl:self-start"
           >
             <div className="border-b border-[#202a28] px-4 py-5 sm:px-5">
               <div className="flex items-center justify-between gap-3">
@@ -879,23 +801,96 @@ export default function Home() {
             )}
           </section>
         </section>
+
+        <section
+          ref={toolsRef}
+          className="mt-5 grid scroll-mt-24 gap-4 lg:grid-cols-2 2xl:grid-cols-4"
+        >
+          <ActivePaymentPanel
+            order={activeOrder}
+            loading={activeOrderLoading}
+            error={activeOrderError}
+            onView={() => loadActiveOrder()}
+            onRefresh={refreshActiveOrder}
+          />
+
+          <SafetyCheckPanel
+            expectedNetwork={safetyExpectedNetwork}
+            onExpectedNetworkChange={(value: string) => {
+              setSafetyExpectedNetwork(value);
+              setSafetyReport(null);
+            }}
+            address={safetyAddress}
+            onAddressChange={(value: string) => {
+              setSafetyAddress(value);
+              setSafetyReport(null);
+            }}
+            report={safetyReport}
+            loading={safetyLoading}
+            onCheck={() => runAddressCheck()}
+          />
+
+          <DriftPanel
+            onCheckMarket={() => handleSubmit("Long SOL with 2x")}
+          />
+
+          <section className="rounded-lg border border-[#263033] bg-[#0c1110] p-5">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#93a0a1]">
+                Route engines
+              </p>
+              <Activity className="h-4 w-4 text-[#62d5f6]" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {protocolModes.map((mode) => (
+                <button
+                  key={mode.label}
+                  type="button"
+                  onClick={() => handleSubmit(mode.intent)}
+                  className="min-h-20 rounded-lg border border-[#263033] bg-[#08100e] px-3 py-3 text-left transition-colors hover:border-[#62d5f6] hover:bg-[#101817] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ff4a50]"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-semibold text-white">
+                      {mode.label}
+                    </span>
+                    <span className={`rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] ${statusBadgeClass(mode.status)}`}>
+                      {mode.status}
+                    </span>
+                  </div>
+                  <p className="mt-2 truncate text-xs text-[#93a0a1]">
+                    {mode.value}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </section>
+        </section>
       </div>
     </main>
   );
 }
 
-function RoutePlaceholder({ loading = false }: { loading?: boolean }) {
+function RoutePlaceholder({
+  loading = false,
+}: {
+  loading?: boolean;
+}) {
   return (
     <div className="p-4 sm:p-5">
       <div className="route-map rounded-lg border border-[#222a2c] p-4">
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#93a0a1]">
-              Route model
+              {loading ? "Finding route" : "No route selected"}
             </p>
             <p className="mt-2 text-2xl font-semibold text-white">
-              USDT TRC20 to BTC
+              {loading ? "Checking providers" : "Start with a request"}
             </p>
+            {!loading ? (
+              <p className="mt-2 max-w-md text-sm leading-6 text-[#aab4b5]">
+                Type a request on the left. This desk will show the provider, minimum amount, network checks, and the next safe action.
+              </p>
+            ) : null}
           </div>
           {loading ? (
             <Loader2 className="h-5 w-5 animate-spin text-[#ff4a50]" />
@@ -906,15 +901,15 @@ function RoutePlaceholder({ loading = false }: { loading?: boolean }) {
 
         <div className="mt-8 flex items-center justify-between gap-3">
           <div className="route-node">
-            <span>USDT</span>
+            <span>{loading ? "IN" : "1"}</span>
           </div>
           <div className="h-px min-w-8 flex-1 bg-[#455255]" />
           <div className="route-node route-node-accent">
-            <span>OK</span>
+            <span>{loading ? "OK" : "2"}</span>
           </div>
           <div className="h-px min-w-8 flex-1 bg-[#455255]" />
           <div className="route-node">
-            <span>BTC</span>
+            <span>{loading ? "OUT" : "3"}</span>
           </div>
         </div>
 
@@ -937,9 +932,9 @@ function RoutePlaceholder({ loading = false }: { loading?: boolean }) {
 
       <div className="mt-4 grid gap-2">
         {[
-          ["1", "Intent parsed"],
-          ["2", "Smart route selected"],
-          ["3", "Address network checked"],
+          ["1", "Intent parsed from text or voice"],
+          ["2", "Provider and minimum shown"],
+          ["3", "Wrong-network address blocked"],
           ["4", "Payment details recoverable"],
         ].map(([number, label], index) => (
           <div
@@ -959,6 +954,16 @@ function RoutePlaceholder({ loading = false }: { loading?: boolean }) {
           </div>
         ))}
       </div>
+
+      {!loading ? (
+        <div className="mt-4 rounded-lg border border-[#28463b] bg-[#081611] p-4">
+          <p className="text-sm font-semibold text-white">What happens next</p>
+          <p className="mt-2 text-sm leading-6 text-[#aab4b5]">
+            Ratzon parses the intent, selects a route, then keeps the safety
+            check and payment recovery visible before funds move.
+          </p>
+        </div>
+      ) : null}
     </div>
   );
 }

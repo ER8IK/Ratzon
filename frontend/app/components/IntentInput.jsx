@@ -3,7 +3,12 @@
 import { useRef, useState } from "react";
 import { Loader2, Mic, SendHorizontal } from "lucide-react";
 
-export default function IntentInput({ onSubmit, loading }) {
+export default function IntentInput({
+  onSubmit,
+  loading,
+  label = "Tell Ratzon what you want",
+  placeholder = 'Swap 50 USDT TRC20 to BTC',
+}) {
   const [text, setText] = useState("");
   const [recording, setRecording] = useState(false);
   const mediaRef = useRef(null);
@@ -67,7 +72,7 @@ export default function IntentInput({ onSubmit, loading }) {
           htmlFor="intent-input"
           className="text-xs font-semibold uppercase tracking-[0.14em] text-[#93a0a1]"
         >
-          Natural language command
+          {label}
         </label>
         <span className="rounded-md border border-[#254235] bg-[#0c2118] px-2 py-1 text-xs font-semibold text-[#70e1a6]">
           Protected
@@ -80,10 +85,10 @@ export default function IntentInput({ onSubmit, loading }) {
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder='Try "Swap 50 USDT TRC20 to BTC"'
-          rows={5}
+          placeholder={placeholder}
+          rows={4}
           disabled={loading}
-          className="min-h-[148px] w-full resize-none bg-transparent px-4 py-4 text-base leading-6 text-[#f6f8f7] outline-none placeholder:text-[#637174] disabled:cursor-not-allowed disabled:opacity-60"
+          className="min-h-[126px] w-full resize-none bg-transparent px-4 py-4 text-base leading-6 text-[#f6f8f7] outline-none placeholder:text-[#637174] disabled:cursor-not-allowed disabled:opacity-60"
         />
 
         <div className="flex items-center justify-between gap-3 border-t border-[#202a28] bg-[#09110f] px-3 py-3">
@@ -93,7 +98,7 @@ export default function IntentInput({ onSubmit, loading }) {
                 recording ? "bg-[#ff4a50]" : "bg-[#36d27f]"
               }`}
             />
-            <span className="truncate">{recording ? "Listening" : "Voice ready"}</span>
+            <span className="truncate">{recording ? "Listening" : "QVAC voice input"}</span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -117,12 +122,18 @@ export default function IntentInput({ onSubmit, loading }) {
               aria-label="Submit intent"
               title="Submit intent"
               disabled={!text.trim() || loading}
-              className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#e83a42] text-white shadow-[0_12px_28px_rgba(232,58,66,0.22)] transition-colors hover:bg-[#ff4a50] disabled:cursor-not-allowed disabled:bg-[#273034] disabled:text-[#68777c]"
+              className="inline-flex h-10 min-w-[116px] items-center justify-center gap-2 rounded-lg bg-[#e83a42] px-3 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(232,58,66,0.22)] transition-colors hover:bg-[#ff4a50] disabled:cursor-not-allowed disabled:bg-[#273034] disabled:text-[#68777c]"
             >
               {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Finding
+                </>
               ) : (
-                <SendHorizontal className="h-4 w-4" />
+                <>
+                  <SendHorizontal className="h-4 w-4" />
+                  Find route
+                </>
               )}
             </button>
           </div>

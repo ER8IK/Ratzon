@@ -21,22 +21,23 @@ logger = logging.getLogger(__name__)
 WELCOME_MESSAGE = """
 🔴 <b>Welcome to Ratzon</b>
 
-<i>The Intent Execution Layer for Solana.</i>
+<i>Safer crypto routes from plain language.</i>
 
-You don't need to know how DeFi works.
-Just say what you want — Ratzon handles the rest.
+What to do first:
+1. Type a request in this chat or open the app.
+2. Review the route, minimum amount, network, and risk notes.
+3. For Smart Swap payments, check the payout address before sending funds.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
-<b>Try these right now:</b>
+<b>Try one:</b>
 
-💱 <code>Swap 1 SOL to USDC</code>
-💱 <code>Swap 100 USDC to BONK</code>
-💲 <code>Price of SOL</code>
-💲 <code>Price of BONK</code>
-🛡 <code>Check this BTC address: bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh</code>
+💱 <code>Swap 1 SOL to USDC</code> — Solana swap
+🧠 <code>Swap 50 USDT TRC20 to BTC</code> — guarded Smart Swap
+💲 <code>Price of SOL</code> — market check
+📈 <code>Long SOL with 2x</code> — DeFi route preview
 ━━━━━━━━━━━━━━━━━━━━━━━━
 
-Type anything in plain English 👇
+The app keeps Safety Check and Active Payment recovery in one place.
 """.strip()
 
 HELP_MESSAGE = """
@@ -65,6 +66,9 @@ HELP_MESSAGE = """
 /tour — guided safety flow
 /status — system status
 /help — this message
+
+<b>WebApp tools:</b>
+Safety Check · Active Payment · Smart Swap
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
 <b>Supported tokens:</b>
