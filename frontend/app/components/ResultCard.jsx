@@ -24,6 +24,7 @@ export default function ResultCard({
   phantomUrl,
   txSignature,
   mobileWalletHandoff = false,
+  walletExecutionReady = false,
   onOpenWalletLink,
   onReset,
 }) {
@@ -184,7 +185,11 @@ export default function ResultCard({
             ) : (
               <>
                 <ExternalLink className="h-4 w-4" />
-                {mobileWalletHandoff ? "Prepare Phantom handoff" : "Prepare in Phantom"}
+                {walletExecutionReady
+                  ? "Open Phantom transaction"
+                  : mobileWalletHandoff
+                    ? "Prepare Phantom handoff"
+                    : "Prepare in Phantom"}
               </>
             )}
           </button>

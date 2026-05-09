@@ -39,11 +39,24 @@ function getPhantomProvider() {
     phantom?: { solana?: any };
     solana?: any;
   };
-  const provider = browserWindow.phantom?.solana || browserWindow.solana;
-  return provider?.isPhantom ? provider : null;
+  const providers = [
+    browserWindow.phantom?.solana,
+    browserWindow.solana,
+  ].filter(Boolean);
+  const phantomProvider = providers.find((provider) => provider?.isPhantom);
+  if (phantomProvider) return phantomProvider;
+
+  return (
+    providers.find(
+      (provider) =>
+        typeof provider?.connect === "function" &&
+        (typeof provider?.signAndSendTransaction === "function" ||
+          typeof provider?.request === "function"),
+    ) || null
+  );
 }
 
-async function waitForPhantomProvider(timeoutMs = 3000) {
+async function waitForPhantomProvider(timeoutMs = 10000) {
   const startedAt = Date.now();
   let provider = getPhantomProvider();
 
@@ -153,7 +166,6 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [pendingPhantomExecution, setPendingPhantomExecution] = useState(false);
   const resultRef = useRef<HTMLDivElement | null>(null);
-  const autoConfirmAttemptedRef = useRef(false);
 
   useEffect(() => {
     try {
@@ -192,7 +204,6 @@ export default function Home() {
 
     const shouldExecute = params.get("execute") === "1";
     if (shouldExecute) {
-      autoConfirmAttemptedRef.current = false;
       setPendingPhantomExecution(true);
     }
 
@@ -232,7 +243,6 @@ export default function Home() {
     options: { preservePendingExecution?: boolean } = {},
   ) {
     if (!options.preservePendingExecution) {
-      autoConfirmAttemptedRef.current = false;
       setPendingPhantomExecution(false);
     }
 
@@ -269,21 +279,21 @@ export default function Home() {
   ) {
     if (!lastQuery) return;
 
-    const allowMobileHandoff = options.allowMobileHandoff ?? true;
+    const resumeInsideWallet = pendingPhantomExecution || options.waitForProvider;
+    const allowMobileHandoff = options.allowMobileHandoff ?? !resumeInsideWallet;
     setConfirmError(null);
     setConfirmLoading(true);
     setPhantomUrl(null);
     setTxSignature(null);
 
     try {
-      const provider = options.waitForProvider
+      const provider = resumeInsideWallet
         ? await waitForPhantomProvider()
         : getPhantomProvider();
       const inTelegramWebView = isTelegramWebView();
       const mobileDevice = isMobileDevice();
 
       if (!provider && allowMobileHandoff && (mobileDevice || inTelegramWebView)) {
-        autoConfirmAttemptedRef.current = false;
         setPendingPhantomExecution(false);
         setPhantomUrl(buildPhantomBrowseUrl(lastQuery, true));
         return;
@@ -293,7 +303,7 @@ export default function Home() {
         throw new Error(
           allowMobileHandoff
             ? "Phantom extension was not detected in this browser tab. Enable Phantom, refresh, and try again."
-            : "Phantom provider was not detected inside Phantom Browser. Refresh in Phantom and try again.",
+            : "Phantom provider was not detected. Open this screen in Phantom Browser, then tap Open Phantom transaction.",
         );
       }
 
@@ -358,29 +368,9 @@ export default function Home() {
     }
   }
 
-  useEffect(() => {
-    if (
-      !pendingPhantomExecution ||
-      !result?.quote ||
-      !lastQuery ||
-      loading ||
-      confirmLoading ||
-      txSignature ||
-      autoConfirmAttemptedRef.current
-    ) {
-      return;
-    }
-
-    autoConfirmAttemptedRef.current = true;
-    handleConfirm({ allowMobileHandoff: false, waitForProvider: true });
-  }, [
-    pendingPhantomExecution,
-    result,
-    lastQuery,
-    loading,
-    confirmLoading,
-    txSignature,
-  ]);
+  const inWalletExecution = pendingPhantomExecution || Boolean(getPhantomProvider());
+  const mobileWalletHandoff =
+    !inWalletExecution && (isTelegramWebView() || isMobileDevice());
 
   return (
     <main className="min-h-screen bg-[#070909] text-[#f6f8f7]">
@@ -557,7 +547,8 @@ export default function Home() {
                 confirmError={confirmError}
                 phantomUrl={phantomUrl}
                 txSignature={txSignature}
-                mobileWalletHandoff={isTelegramWebView() || isMobileDevice()}
+                mobileWalletHandoff={mobileWalletHandoff}
+                walletExecutionReady={pendingPhantomExecution}
                 onOpenWalletLink={openWalletLink}
                 onReset={() => {
                   setResult(null);
