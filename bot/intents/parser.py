@@ -17,7 +17,7 @@ from .models import (
 from .patterns import (
     SWAP_KEYWORDS, SEND_KEYWORDS, BALANCE_KEYWORDS,
     PRICE_KEYWORDS, RATE_KEYWORDS, COMPARE_KEYWORDS,
-    normalize_token,
+    normalize_token, normalize_network,
 )
 from .llm_parser import llm_parser
 
@@ -150,16 +150,24 @@ class IntentParser:
     def _parse_swap(self, text: str, tl: str) -> SwapIntent | None:
         match = re.search(
             r'(?:swap|exchange|trade|convert|обменять|своп|конвертировать)'
-            r'\s+(\d+(?:[.,]\d+)?)\s+(\w+)\s+'
-            r'(?:to|for|into|на|в|→|->|за)\s+(\w+)', tl
+            r'\s+(\d+(?:[.,]\d+)?)\s+(\w+)'
+            r'(?:\s+(erc20|trc20|tron|solana|spl|ethereum|bitcoin|btc))?\s+'
+            r'(?:to|for|into|на|в|→|->|за)\s+(\w+)'
+            r'(?:\s+(erc20|trc20|tron|solana|spl|ethereum|bitcoin|btc|native))?', tl
         )
         if match:
-            amount, in_raw, out_raw = match.groups()
+            amount, in_raw, in_network_raw, out_raw, out_network_raw = match.groups()
+            input_token = normalize_token(in_raw) or in_raw.upper()
+            output_token = normalize_token(out_raw) or out_raw.upper()
             return SwapIntent(
                 raw_text=text, intent_type=IntentType.SWAP, confidence=0.95,
                 amount=float(amount.replace(',', '.')),
-                input_token=normalize_token(in_raw) or in_raw.upper(),
-                output_token=normalize_token(out_raw) or out_raw.upper(),
+                input_token=input_token,
+                output_token=output_token,
+                input_network=normalize_network(in_network_raw or "")
+                    or self._infer_default_network(input_token),
+                output_network=normalize_network(out_network_raw or "")
+                    or self._infer_default_network(output_token),
             )
 
         match = re.search(r'(?:buy|купить)\s+(\d+(?:[.,]\d+)?)\s+(\w+)', tl)
@@ -170,6 +178,10 @@ class IntentParser:
                 amount=float(amount.replace(',', '.')),
                 input_token="SOL",
                 output_token=normalize_token(out_raw) or out_raw.upper(),
+                input_network="SOLANA",
+                output_network=self._infer_default_network(
+                    normalize_token(out_raw) or out_raw.upper()
+                ),
             )
 
         match = re.search(r'(?:sell|продать)\s+(\d+(?:[.,]\d+)?)\s+(\w+)', tl)
@@ -180,6 +192,10 @@ class IntentParser:
                 amount=float(amount.replace(',', '.')),
                 input_token=normalize_token(in_raw) or in_raw.upper(),
                 output_token="USDC",
+                input_network=self._infer_default_network(
+                    normalize_token(in_raw) or in_raw.upper()
+                ),
+                output_network="SOLANA",
             )
         return None
 
@@ -307,6 +323,16 @@ class IntentParser:
             t = normalize_token(word)
             if t:
                 return t
+        return None
+
+    @staticmethod
+    def _infer_default_network(token: str | None) -> str | None:
+        if token == "BTC":
+            return "BTC"
+        if token == "ETH":
+            return "ERC20"
+        if token in {"SOL", "USDC", "USDT", "BONK", "WIF", "JUP", "RAY", "ORCA", "mSOL", "jitoSOL"}:
+            return "SOLANA"
         return None
 
     @staticmethod

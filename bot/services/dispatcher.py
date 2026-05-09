@@ -64,7 +64,7 @@ class IntentDispatcher:
         risk = risk_engine.evaluate(intent, quote)
         return DispatchResult(
             text=formatter.format_swap_response(intent, quote, risk),
-            show_confirm_button=True,
+            show_confirm_button=quote.payment_mode == "wallet_signature",
             intent=intent,
             quote=quote,
             risk=risk,

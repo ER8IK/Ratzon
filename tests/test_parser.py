@@ -17,6 +17,18 @@ def test_swap_regex_parsing():
         assert intent.output_token is not None, f"Missing output_token for: {text}"
 
 
+def test_swap_regex_parses_network():
+    intent = intent_parser.parse_sync("swap 50 usdt trc20 to btc")
+
+    assert intent.intent_type == IntentType.SWAP
+    assert intent.amount == 50
+    assert intent.input_token == "USDT"
+    assert intent.input_network == "TRC20"
+    assert intent.output_token == "BTC"
+    assert intent.output_network == "BTC"
+
+
 if __name__ == "__main__":
     test_swap_regex_parsing()
+    test_swap_regex_parses_network()
     print("OK")

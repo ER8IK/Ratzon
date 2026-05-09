@@ -38,8 +38,18 @@ def format_swap_response(
     lines.append("")
 
     # ── Маршрут ──
-    lines.append("📍 <b>Best Route</b>")
+    route_title = "🧠 <b>Smart Route</b>" if quote.payment_mode == "deposit_address" else "📍 <b>Best Route</b>"
+    lines.append(route_title)
     lines.append(f"<code>{quote.route_label}</code>")
+    if quote.input_network or quote.output_network:
+        lines.append(
+            f"Network: <b>{quote.input_token} {quote.input_network}</b> → "
+            f"<b>{quote.output_token} {quote.output_network}</b>"
+        )
+    if quote.min_amount is not None:
+        lines.append(
+            f"Provider minimum: <b>{quote.min_amount:g} {quote.input_token}</b>"
+        )
     lines.append("")
 
     # ── Результат ──
@@ -74,9 +84,17 @@ def format_swap_response(
         for w in risk.warnings:
             lines.append(f"  {w}")
 
+    if quote.safety_checks:
+        lines.append("")
+        for check in quote.safety_checks:
+            lines.append(f"  ✅ {check}")
+
     lines.append("")
     lines.append("━━━━━━━━━━━━━━━━━━━━━━━━")
-    lines.append("Proceed with this swap?")
+    if quote.payment_mode == "deposit_address":
+        lines.append("Next: paste the payout address. Ratzon checks the network before creating payment details.")
+    else:
+        lines.append("Proceed with this swap?")
 
     return "\n".join(lines)
 

@@ -285,6 +285,8 @@ def _serialize_intent(intent) -> dict:
         "amount": intent.amount,
         "input_token": intent.input_token,
         "output_token": intent.output_token,
+        "input_network": getattr(intent, "input_network", None),
+        "output_network": getattr(intent, "output_network", None),
         "slippage_bps": getattr(intent, "slippage_bps", 50),
     }
 
@@ -302,6 +304,8 @@ def _deserialize_intent(data: dict) -> SwapIntent:
         amount=data["amount"],
         input_token=data["input_token"],
         output_token=data["output_token"],
+        input_network=data.get("input_network"),
+        output_network=data.get("output_network"),
         slippage_bps=data.get("slippage_bps", 50),
     )
 
@@ -321,6 +325,12 @@ def _serialize_quote(quote) -> dict:
         "price_impact_pct": quote.price_impact_pct,
         "route_label": quote.route_label,
         "fees_sol": quote.fees_sol,
+        "provider_label": quote.provider_label,
+        "input_network": quote.input_network,
+        "output_network": quote.output_network,
+        "min_amount": quote.min_amount,
+        "payment_mode": quote.payment_mode,
+        "safety_checks": quote.safety_checks,
     }
 
 

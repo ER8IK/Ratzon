@@ -97,6 +97,22 @@ def rule_low_output(ctx: RiskContext) -> list[tuple[str, int]]:
     return []
 
 
+def rule_dynamic_minimum(ctx: RiskContext) -> list[tuple[str, int]]:
+    """Предупреждение если провайдер вернул минимальную сумму выше заявки."""
+    if ctx.quote is None or ctx.quote.min_amount is None:
+        return []
+
+    if ctx.intent.amount < ctx.quote.min_amount:
+        return [(
+            f"🔴 Below provider minimum: send at least {ctx.quote.min_amount:g} {ctx.intent.input_token}",
+            55
+        )]
+    return [(
+        f"✅ Provider minimum passed: {ctx.quote.min_amount:g} {ctx.intent.input_token}",
+        0
+    )]
+
+
 def rule_stablecoin_swap(ctx: RiskContext) -> list[tuple[str, int]]:
     """Информация при обмене стейблкоинов."""
     if (is_stablecoin(ctx.intent.input_token) and
@@ -128,6 +144,7 @@ ALL_RULES: list[Callable[[RiskContext], list[tuple[str, int]]]] = [
     rule_high_price_impact,
     rule_large_amount,
     rule_low_output,
+    rule_dynamic_minimum,
     rule_stablecoin_swap,
     rule_meme_token,
 ]
