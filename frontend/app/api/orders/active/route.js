@@ -1,5 +1,5 @@
 import { getBotApiUrl, proxyError, readJsonResponse } from "../../_lib/botApi";
-import { getFallbackActiveOrder } from "../../_lib/demoFallback";
+import { getFallbackActiveOrder } from "../../_lib/localFallback";
 
 export const dynamic = "force-dynamic";
 

@@ -5,7 +5,7 @@
  */
 
 import { getBotApiUrl, proxyError, readJsonResponse } from "../_lib/botApi";
-import { fallbackIntent } from "../_lib/demoFallback";
+import { fallbackIntent } from "../_lib/localFallback";
 
 export async function POST(request) {
   let message = "";

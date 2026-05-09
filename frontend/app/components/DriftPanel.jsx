@@ -2,7 +2,7 @@
 
 import { AlertTriangle, BarChart3, ExternalLink, Landmark } from "lucide-react";
 
-export default function DriftPreviewPanel({ onCheckMarket }) {
+export default function DriftPanel({ onCheckMarket }) {
   return (
     <div className="rounded-lg border border-[#263033] bg-[#08100e] p-4">
       <div className="flex items-center justify-between gap-3">
@@ -11,7 +11,7 @@ export default function DriftPreviewPanel({ onCheckMarket }) {
           Earn / Drift
         </div>
         <span className="rounded-lg border border-[#1f6d4b] bg-[#0d2a1d] px-3 py-1 text-xs font-semibold text-[#70e1a6]">
-          Ready
+          Guarded
         </span>
       </div>
 

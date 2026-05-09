@@ -42,7 +42,7 @@ class IntentDispatcher:
         elif intent.intent_type == IntentType.BALANCE:
             return self._handle_balance(intent)
         elif isinstance(intent, ProtocolIntent):
-            return self._handle_protocol_planned(intent)
+            return self._handle_protocol_route(intent)
         else:
             return DispatchResult(
                 text=formatter.format_intent_unknown(intent.raw_text),
@@ -142,9 +142,9 @@ class IntentDispatcher:
             text=formatter.format_balance_mock(), intent=intent,
         )
 
-    def _handle_protocol_planned(self, intent: ProtocolIntent) -> DispatchResult:
+    def _handle_protocol_route(self, intent: ProtocolIntent) -> DispatchResult:
         return DispatchResult(
-            text=formatter.format_protocol_planned(intent),
+            text=formatter.format_protocol_route(intent),
             intent=intent,
             adapter_id=intent.protocol,
         )

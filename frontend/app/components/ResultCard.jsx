@@ -64,7 +64,7 @@ export default function ResultCard({
               <p className="mt-2 text-sm leading-6 text-[#c5ced0]">{actionLabel}</p>
             </div>
             <span className="rounded-lg border border-[#1f6d4b] bg-[#0d2a1d] px-3 py-1 text-xs font-semibold text-[#70e1a6]">
-              Ready
+              Guarded
             </span>
           </div>
 

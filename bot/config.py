@@ -19,8 +19,8 @@ class Config:
     # RPC для будущего использования (исполнение транзакций)
     solana_rpc_url: str = "https://api.mainnet-beta.solana.com"
 
-    # Для демо-режима (мок кошелёк)
-    demo_wallet: str = "Demo1111111111111111111111111111111111111111"
+    # Fallback wallet used only for local diagnostics.
+    fallback_wallet: str = "11111111111111111111111111111111"
 
     # Локальный web frontend рядом с ботом
     start_frontend_with_bot: bool = True
@@ -51,9 +51,9 @@ class Config:
                 "SOLANA_RPC_URL",
                 "https://api.mainnet-beta.solana.com"
             ),
-            demo_wallet=os.getenv(
-                "DEMO_WALLET",
-                "Demo1111111111111111111111111111111111111111"
+            fallback_wallet=os.getenv(
+                "FALLBACK_WALLET",
+                "11111111111111111111111111111111"
             ),
             start_frontend_with_bot=start_frontend_with_bot,
             frontend_host=os.getenv("FRONTEND_HOST", "0.0.0.0"),

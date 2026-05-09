@@ -1,7 +1,6 @@
 # bot/handlers/start.py
 """
-/start, /help, /demo, /status команды.
-День 1: красивый онбординг + авто-демо для судей.
+/start, /help, /tour, /status commands.
 """
 
 import asyncio
@@ -34,7 +33,7 @@ Just say what you want — Ratzon handles the rest.
 💱 <code>Swap 100 USDC to BONK</code>
 💲 <code>Price of SOL</code>
 💲 <code>Price of BONK</code>
-💼 <code>My balance</code>
+🛡 <code>Check this BTC address: bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh</code>
 ━━━━━━━━━━━━━━━━━━━━━━━━
 
 Type anything in plain English 👇
@@ -63,7 +62,7 @@ HELP_MESSAGE = """
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
 <b>Commands:</b>
-/demo — see Ratzon in action
+/tour — guided safety flow
 /status — system status
 /help — this message
 
@@ -73,7 +72,7 @@ SOL · USDC · USDT · BONK · WIF
 JUP · RAY · ORCA · mSOL · jitoSOL
 BTC · ETH · PYTH · JTO · MNGO
 
-Powered by Jupiter Aggregator 🪐
+Powered by Jupiter, QVAC, and Ratzon safety routing.
 """.strip()
 
 
@@ -101,32 +100,33 @@ async def cmd_status(message: Message):
         "• Intent Parser:   <b>Online</b>\n"
         "• Jupiter API:     <b>Online</b>\n"
         "• Risk Engine:     <b>Online</b>\n"
+        "• QVAC Intent:     <b>Integrated</b>\n"
         f"• Web App:         <b>{web_app_status}</b>\n"
-        "• Execution:       <b>Demo Mode</b>\n\n"
+        "• Execution:       <b>User-approved wallet signing</b>\n\n"
         "<i>Ratzon v0.2.0 — Intent Layer for Solana</i>",
         parse_mode="HTML",
     )
 
 
-@router.message(Command("demo"))
-async def cmd_demo(message: Message):
+@router.message(Command("tour"))
+async def cmd_tour(message: Message):
     """
-    Автоматически демонстрирует 3 сценария судьям.
+    Guided route walkthrough.
     """
     await message.answer(
-        "🎬 <b>Ratzon Demo</b>\n\n"
-        "Watch how Ratzon handles different intents...",
+        "🧭 <b>Ratzon Guided Flow</b>\n\n"
+        "Watch how Ratzon turns intent into guarded execution steps.",
         parse_mode="HTML",
     )
     await asyncio.sleep(1.5)
 
-    demo_intents = [
-        ("💱 Intent #1: Standard swap", "Swap 1 SOL to USDC"),
-        ("🎰 Intent #2: Meme token (risk warning)", "Swap 100 USDC to BONK"),
-        ("💲 Intent #3: Price check", "Price of SOL"),
+    walkthrough_intents = [
+        ("💱 Route #1: Wallet-controlled swap", "Swap 1 SOL to USDC"),
+        ("🧠 Route #2: Cross-chain Smart Swap", "Swap 50 USDT TRC20 to BTC"),
+        ("🛡 Route #3: Price + risk context", "Price of SOL"),
     ]
 
-    for label, text in demo_intents:
+    for label, text in walkthrough_intents:
         await message.answer(
             f"{label}\n\n"
             f"<i>User says:</i> <code>{text}</code>",
@@ -148,8 +148,8 @@ async def cmd_demo(message: Message):
 
     await message.answer(
         "━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        "✅ <b>Demo complete!</b>\n\n"
-        "Now try it yourself — just type any swap or price request.\n\n"
+        "✅ <b>Guided flow complete.</b>\n\n"
+        "Now type any swap, price, safety, or DeFi route request.\n\n"
         "<code>Swap 1 SOL to USDC</code>",
         parse_mode="HTML",
     )

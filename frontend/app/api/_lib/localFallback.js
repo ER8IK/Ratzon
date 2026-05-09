@@ -6,7 +6,7 @@ const NETWORK_LABELS = {
   INVALID: "Invalid",
 };
 
-const DEMO_PAYIN = {
+const PAYIN_DIRECTORY = {
   TRC20: "TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE",
   ERC20: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
   SOLANA: "11111111111111111111111111111111",
@@ -34,21 +34,21 @@ export function fallbackProtocols() {
       {
         adapter_id: "simpleswap",
         label: "SimpleSwap Network",
-        status: "active",
+        status: "guarded",
         intents: ["swap", "rate"],
         description: "Cross-chain smart route with payment details and address safety.",
       },
       {
         adapter_id: "drift",
         label: "Drift",
-        status: "active",
+        status: "guarded",
         intents: ["perp"],
         description: "Risk-controlled Drift / Solana DeFi route.",
       },
       {
         adapter_id: "kamino",
         label: "Kamino",
-        status: "active",
+        status: "guarded",
         intents: ["lend", "borrow", "yield"],
         description: "Earn, borrow, and vault strategy intents.",
       },
@@ -165,7 +165,7 @@ export function createFallbackOrder({ clientId, message, payoutAddress }) {
       amount_to_send: intentResponse.intent.amount,
       token: intentResponse.intent.input_token,
       network: quote.input_network,
-      payin_address: DEMO_PAYIN[quote.input_network] || DEMO_PAYIN.TRC20,
+      payin_address: PAYIN_DIRECTORY[quote.input_network] || PAYIN_DIRECTORY.TRC20,
       memo: null,
       expires_at: expires.toISOString(),
     },
@@ -358,8 +358,8 @@ function detectNetwork(address) {
 }
 
 function store() {
-  if (!globalThis.__ratzonDemoOrders) {
-    globalThis.__ratzonDemoOrders = new Map();
+  if (!globalThis.__ratzonOrders) {
+    globalThis.__ratzonOrders = new Map();
   }
-  return globalThis.__ratzonDemoOrders;
+  return globalThis.__ratzonOrders;
 }

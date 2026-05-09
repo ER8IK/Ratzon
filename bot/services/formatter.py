@@ -174,7 +174,7 @@ def format_intent_unknown(text: str) -> str:
     )
 
 
-def format_protocol_planned(intent: ProtocolIntent) -> str:
+def format_protocol_route(intent: ProtocolIntent) -> str:
     protocol = _protocol_label(intent.protocol)
     token = f" {intent.token}" if intent.token else ""
     amount = f"{intent.amount:g} " if intent.amount else ""

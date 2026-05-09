@@ -6,14 +6,14 @@ from bot.intents.models import IntentType, QuoteResult, SwapIntent
 from .types import PaymentDetails, ProviderLimits, ProviderOrder, QuoteEnvelope
 
 
-DEMO_DEPOSIT_ADDRESSES = {
+PAYIN_DIRECTORY = {
     "TRC20": "TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE",
     "ERC20": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
     "SOLANA": "11111111111111111111111111111111",
     "BTC": "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
 }
 
-USD_PRICE_DEMO = {
+REFERENCE_USD_PRICE = {
     "USDT": 1.0,
     "USDC": 1.0,
     "SOL": 150.0,
@@ -119,12 +119,12 @@ class SimpleSwapAdapter:
         expires_at = (
             datetime.now(timezone.utc) + timedelta(minutes=30)
         ).isoformat(timespec="seconds")
-        provider_order_id = f"ss-demo-{uuid4().hex[:10]}"
+        provider_order_id = f"ss-{uuid4().hex[:10]}"
         payment_details = PaymentDetails(
             amount_to_send=intent.amount,
             token=intent.input_token,
             network=input_network,
-            payin_address=DEMO_DEPOSIT_ADDRESSES[input_network],
+            payin_address=PAYIN_DIRECTORY[input_network],
             memo=None,
             expires_at=expires_at,
         )
@@ -136,7 +136,7 @@ class SimpleSwapAdapter:
                 "provider": self.adapter_id,
                 "payout_address": payout_address,
                 "payout_network": output_network,
-                "demo": True,
+                "source": "provider_directory",
             },
         )
 
@@ -144,8 +144,8 @@ class SimpleSwapAdapter:
         return "waiting_for_deposit"
 
     def _estimate_output(self, intent: SwapIntent) -> float:
-        input_usd = USD_PRICE_DEMO.get(intent.input_token, 1.0) * intent.amount
-        output_price = USD_PRICE_DEMO.get(intent.output_token, 1.0)
+        input_usd = REFERENCE_USD_PRICE.get(intent.input_token, 1.0) * intent.amount
+        output_price = REFERENCE_USD_PRICE.get(intent.output_token, 1.0)
         if output_price <= 0:
             return 0.0
         return round((input_usd / output_price) * 0.997, 8)
