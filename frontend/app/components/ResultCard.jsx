@@ -23,7 +23,8 @@ export default function ResultCard({
   confirmError,
   phantomUrl,
   txSignature,
-  inTelegramWebView = false,
+  mobileWalletHandoff = false,
+  onOpenWalletLink,
   onReset,
 }) {
   if (!result) return null;
@@ -183,7 +184,7 @@ export default function ResultCard({
             ) : (
               <>
                 <ExternalLink className="h-4 w-4" />
-                {inTelegramWebView ? "Prepare transaction" : "Prepare in Phantom"}
+                {mobileWalletHandoff ? "Prepare Phantom handoff" : "Prepare in Phantom"}
               </>
             )}
           </button>
@@ -213,10 +214,18 @@ export default function ResultCard({
             href={phantomUrl}
             target="_blank"
             rel="noreferrer"
+            onClick={
+              onOpenWalletLink
+                ? (event) => {
+                    event.preventDefault();
+                    onOpenWalletLink(phantomUrl);
+                  }
+                : undefined
+            }
             className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-[#ff4a50] bg-[#171f22] px-4 py-2 text-sm font-semibold text-[#ff8084] transition-colors hover:bg-[#221618]"
           >
             <ExternalLink className="h-4 w-4" />
-            Open transaction
+            {mobileWalletHandoff ? "Open in Phantom Browser" : "Open transaction"}
           </a>
         )}
       </div>
