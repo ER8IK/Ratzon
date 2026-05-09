@@ -22,15 +22,38 @@ const TRUST_ITEMS = [
   { label: "Keys", value: "Not stored", icon: ShieldCheck },
 ];
 
-const PROTOCOL_MODES = [
+const DEFAULT_PROTOCOL_MODES = [
   { label: "Swap", value: "Jupiter", status: "Live", intent: "Swap 1 SOL to USDC" },
   { label: "Earn", value: "Kamino", status: "Next", intent: "Find best yield for USDC" },
   { label: "Stake", value: "Jito", status: "Next", intent: "Stake 1 SOL" },
   { label: "Trade", value: "Drift", status: "Next", intent: "Long SOL with 2x" },
 ];
 
+const PROTOCOL_MODE_META: Record<string, { label: string; intent: string }> = {
+  jupiter: { label: "Swap", intent: "Swap 1 SOL to USDC" },
+  kamino: { label: "Earn", intent: "Find best yield for USDC" },
+  "jito-marinade": { label: "Stake", intent: "Stake 1 SOL" },
+  drift: { label: "Trade", intent: "Long SOL with 2x" },
+};
+
 const RECENT_INTENTS_KEY = "ratzon:recent-intents";
 const MAX_RECENT_INTENTS = 5;
+
+function protocolModeFromCapability(capability: any) {
+  if (!capability?.adapter_id || !capability?.label) return null;
+
+  const meta = PROTOCOL_MODE_META[capability.adapter_id] || {
+    label: capability.label,
+    intent: `${String(capability.intents?.[0] || "swap")} with ${capability.label}`,
+  };
+
+  return {
+    label: meta.label,
+    value: capability.label,
+    status: capability.status === "live" ? "Live" : "Next",
+    intent: meta.intent,
+  };
+}
 
 function getPhantomProvider() {
   if (typeof window === "undefined") return null;
@@ -165,6 +188,7 @@ export default function Home() {
   const [txSignature, setTxSignature] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pendingPhantomExecution, setPendingPhantomExecution] = useState(false);
+  const [protocolModes, setProtocolModes] = useState(DEFAULT_PROTOCOL_MODES);
   const resultRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -183,6 +207,34 @@ export default function Home() {
     } catch {
       setRecentIntents([]);
     }
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadProtocolModes() {
+      try {
+        const res = await fetch("/api/protocols", { cache: "no-store" });
+        const data = await res.json();
+        if (!res.ok || !Array.isArray(data?.protocols)) return;
+
+        const modes = data.protocols
+          .map(protocolModeFromCapability)
+          .filter(Boolean);
+        if (active && modes.length) {
+          setProtocolModes(modes);
+        }
+      } catch {
+        if (active) {
+          setProtocolModes(DEFAULT_PROTOCOL_MODES);
+        }
+      }
+    }
+
+    loadProtocolModes();
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -449,7 +501,7 @@ export default function Home() {
                   <CircleDollarSign className="h-4 w-4 text-[#62d5f6]" />
                 </div>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {PROTOCOL_MODES.map((mode) => (
+                  {protocolModes.map((mode) => (
                     <button
                       key={mode.label}
                       type="button"

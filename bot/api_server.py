@@ -99,6 +99,23 @@ async def handle_health(request: web.Request) -> web.Response:
     })
 
 
+async def handle_capabilities(request: web.Request) -> web.Response:
+    return web.json_response({
+        "protocols": [
+            {
+                "adapter_id": capability.adapter_id,
+                "label": capability.label,
+                "status": capability.status,
+                "intents": [
+                    intent_type.value for intent_type in capability.intents
+                ],
+                "description": capability.description,
+            }
+            for capability in protocol_router.capabilities()
+        ],
+    })
+
+
 async def handle_swap(request: web.Request) -> web.Response:
     try:
         body = await request.json()
@@ -187,6 +204,7 @@ def create_app() -> web.Application:
     app = web.Application()
     app.router.add_post("/intent", handle_intent)
     app.router.add_post("/swap", handle_swap)
+    app.router.add_get("/capabilities", handle_capabilities)
     app.router.add_get("/health", handle_health)
 
     # CORS для фронтенда
