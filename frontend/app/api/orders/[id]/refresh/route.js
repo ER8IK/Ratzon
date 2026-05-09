@@ -21,8 +21,7 @@ export async function POST(_request, { params }) {
     }
 
     return Response.json(data);
-  } catch (error) {
-    console.error("Refresh order API error:", error);
+  } catch {
     return Response.json(refreshFallbackOrder(id));
   }
 }

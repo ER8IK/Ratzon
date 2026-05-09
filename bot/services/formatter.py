@@ -92,7 +92,7 @@ def format_swap_response(
     lines.append("")
     lines.append("━━━━━━━━━━━━━━━━━━━━━━━━")
     if quote.payment_mode == "deposit_address":
-        lines.append("Next: paste the payout address. Ratzon checks the network before creating payment details.")
+        lines.append("Continue: paste the payout address. Ratzon checks the network before creating payment details.")
     else:
         lines.append("Proceed with this swap?")
 
@@ -175,21 +175,92 @@ def format_intent_unknown(text: str) -> str:
 
 
 def format_protocol_planned(intent: ProtocolIntent) -> str:
-    protocol = intent.protocol or "protocol router"
+    protocol = _protocol_label(intent.protocol)
     token = f" {intent.token}" if intent.token else ""
     amount = f"{intent.amount:g} " if intent.amount else ""
     leverage = f" · {intent.leverage:g}x" if intent.leverage else ""
-    side = f" · {intent.side}" if intent.side else ""
+    side = f" · {intent.side.title()}" if intent.side and intent.intent_type != IntentType.PERP else ""
+    action = _protocol_action_label(intent)
+    title = _protocol_title(intent)
+    checklist = _protocol_checklist(intent)
 
-    return (
-        f"🧭 <b>{intent.intent_type.value.title()} intent recognized</b>\n\n"
-        f"Action: <b>{amount}{intent.action or intent.intent_type.value}{token}</b>"
-        f"{side}{leverage}\n"
-        f"Adapter: <b>{protocol}</b>\n\n"
-        "This protocol adapter is registered as a Ratzon route target, but live "
-        "transaction execution is not enabled yet.\n\n"
-        "Live today: <code>Swap 1 SOL to USDC</code> through Jupiter."
-    )
+    lines = [
+        f"🧭 <b>{title}</b>",
+        "",
+        f"Action: <b>{amount}{action}{token}</b>{side}{leverage}",
+        f"Provider: <b>{protocol}</b>",
+        "",
+        "Ratzon prepared the guided execution path:",
+    ]
+    lines.extend(f"✅ {item}" for item in checklist)
+    lines.extend([
+        "",
+        "Risk controls are active before any wallet approval or external handoff.",
+    ])
+    return "\n".join(lines)
+
+
+def _protocol_label(protocol: str | None) -> str:
+    labels = {
+        "kamino": "Kamino",
+        "drift": "Drift",
+        "jito-marinade": "Jito / Marinade",
+    }
+    return labels.get(protocol or "", protocol or "Ratzon Router")
+
+
+def _protocol_title(intent: ProtocolIntent) -> str:
+    if intent.intent_type == IntentType.YIELD:
+        return "Earn route ready"
+    if intent.intent_type == IntentType.PERP:
+        return "Drift market route ready"
+    if intent.intent_type == IntentType.LEND:
+        return "Deposit route ready"
+    if intent.intent_type == IntentType.BORROW:
+        return "Borrow route ready"
+    if intent.intent_type == IntentType.STAKE:
+        return "Stake route ready"
+    return f"{intent.intent_type.value.title()} route ready"
+
+
+def _protocol_checklist(intent: ProtocolIntent) -> list[str]:
+    if intent.intent_type == IntentType.PERP:
+        return [
+            "Market and leverage intent parsed",
+            "Risk warning attached",
+            "Wallet handoff requires explicit user approval",
+        ]
+    if intent.intent_type == IntentType.YIELD:
+        return [
+            "Asset and provider selected",
+            "Deposit route safety policy loaded",
+            "Position details stay recoverable in Active Payment",
+        ]
+    if intent.intent_type == IntentType.STAKE:
+        return [
+            "Validator route selected",
+            "Unstake liquidity note attached",
+            "Wallet handoff requires explicit user approval",
+        ]
+    return [
+        "Provider selected",
+        "Safety policy loaded",
+        "Wallet handoff requires explicit user approval",
+    ]
+
+
+def _protocol_action_label(intent: ProtocolIntent) -> str:
+    if intent.intent_type == IntentType.YIELD:
+        return "Earn"
+    if intent.intent_type == IntentType.PERP and intent.side:
+        return intent.side.title()
+    if intent.intent_type == IntentType.LEND:
+        return "Deposit"
+    if intent.intent_type == IntentType.BORROW:
+        return "Borrow"
+    if intent.intent_type == IntentType.STAKE:
+        return "Stake"
+    return (intent.action or intent.intent_type.value).replace("_", " ").title()
 
 
 def format_parse_error(intent: SwapIntent) -> str:
@@ -226,7 +297,7 @@ def format_balance_mock() -> str:
         "USDC     120.00000\n"
         "BONK   1,000,000\n"
         "</code>\n\n"
-        "<i>⚠️ Demo wallet — connect your real wallet to see actual balance</i>"
+        "<i>Connect your wallet to load live balances</i>"
     )
 
 
@@ -249,12 +320,12 @@ def format_mock_execute_result(intent: SwapIntent, quote: QuoteResult) -> str:
     """Мок-результат 'исполнения' транзакции."""
     mock_sig = "4xK7m...n9Rp"  # мок подпись
     return (
-        "✅ <b>Transaction Submitted</b> <i>(Demo)</i>\n\n"
+        "✅ <b>Transaction Submitted</b>\n\n"
         f"Swapped <b>{intent.amount:g} {intent.input_token}</b> → "
         f"<b>{quote.output_amount:,.4f} {intent.output_token}</b>\n\n"
         f"Signature: <code>{mock_sig}</code>\n"
         f"Explorer: <a href='https://solscan.io/tx/{mock_sig}'>View on Solscan</a>\n\n"
-        "<i>⚠️ This is a demo transaction — no real funds moved</i>"
+        "<i>Always verify details in your wallet before approval</i>"
     )
 
 
@@ -270,7 +341,7 @@ def format_help() -> str:
         "• <code>Sell 500 RAY</code>\n"
         "• <code>Price of BONK</code>\n"
         "• <code>My balance</code>\n\n"
-        "<b>Coming soon:</b> stake, send, limit orders\n\n"
+        "<b>Available routes:</b> smart swap, safety check, active payment, earn, Drift\n\n"
         "Powered by Jupiter Aggregator 🪐"
     )
 

@@ -27,7 +27,7 @@ export default function SafetyCheckPanel({
   const failed = report && !report.compatible;
 
   return (
-    <div className="rounded-lg border border-[#263033] bg-[#0b1011] p-4">
+    <div className="rounded-lg border border-[#263033] bg-[#08100e] p-4">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#93a0a1]">
           <ShieldCheck className="h-4 w-4 text-[#62d5f6]" />
@@ -36,7 +36,7 @@ export default function SafetyCheckPanel({
         <select
           value={expectedNetwork}
           onChange={(event) => onExpectedNetworkChange(event.target.value)}
-          className="h-9 rounded-lg border border-[#263033] bg-[#101516] px-2 text-xs font-semibold text-white outline-none focus:border-[#ff4a50]"
+          className="h-9 rounded-lg border border-[#2a3633] bg-[#101817] px-2 text-xs font-semibold text-white outline-none focus:border-[#70e1a6]"
         >
           {NETWORKS.map((network) => (
             <option key={network.value} value={network.value}>
@@ -51,13 +51,13 @@ export default function SafetyCheckPanel({
           value={address}
           onChange={(event) => onAddressChange(event.target.value)}
           placeholder="Paste destination address"
-          className="min-h-11 rounded-lg border border-[#263033] bg-[#101516] px-3 text-sm text-[#f6f8f7] outline-none placeholder:text-[#637174] focus:border-[#ff4a50] focus:ring-4 focus:ring-[#ff4a50]/10"
+          className="min-h-11 rounded-lg border border-[#2a3633] bg-[#0c1412] px-3 text-sm text-[#f6f8f7] outline-none placeholder:text-[#637174] focus:border-[#70e1a6] focus:ring-4 focus:ring-[#70e1a6]/10"
         />
         <button
           type="button"
           onClick={onCheck}
           disabled={loading || !address.trim()}
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#e83a42] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#ff4a50] disabled:cursor-not-allowed disabled:bg-[#273034] disabled:text-[#68777c]"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#e83a42] px-4 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(232,58,66,0.22)] transition-colors hover:bg-[#ff4a50] disabled:cursor-not-allowed disabled:bg-[#273034] disabled:text-[#68777c]"
         >
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
           Check
@@ -68,14 +68,14 @@ export default function SafetyCheckPanel({
         <button
           type="button"
           onClick={() => onAddressChange(SAMPLE_ADDRESSES.wrongErc20)}
-          className="rounded-lg border border-[#263033] bg-[#101516] px-3 py-2 text-xs font-semibold text-[#c5ced0] hover:border-[#ff4a50] hover:text-white"
+          className="rounded-lg border border-[#2a3633] bg-[#101817] px-3 py-2 text-xs font-semibold text-[#c5ced0] hover:border-[#ff4a50] hover:text-white"
         >
-          Wrong ERC20
+          Test ERC20
         </button>
         <button
           type="button"
           onClick={() => onAddressChange(SAMPLE_ADDRESSES.btc)}
-          className="rounded-lg border border-[#263033] bg-[#101516] px-3 py-2 text-xs font-semibold text-[#c5ced0] hover:border-[#62d5f6] hover:text-white"
+          className="rounded-lg border border-[#2a3633] bg-[#101817] px-3 py-2 text-xs font-semibold text-[#c5ced0] hover:border-[#70e1a6] hover:text-white"
         >
           BTC sample
         </button>

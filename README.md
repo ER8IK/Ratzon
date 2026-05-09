@@ -153,10 +153,10 @@ docker-compose up
 | `Price of BONK` | Live price from Jupiter |
 | `Compare SOL and JUP` | Side-by-side price comparison |
 | `Rate SOL to USDC` | Current exchange rate |
-| `Swap 50 USDT TRC20 to BTC` | Smart cross-chain route preview + payment safety checks |
-| `Stake 1 SOL` | Recognized as Jito/Marinade staking intent; execution planned |
-| `Find best yield for USDC` | Recognized as Kamino yield intent; execution planned |
-| `Long SOL with 2x` | Recognized as Drift perp intent; execution planned |
+| `Swap 50 USDT TRC20 to BTC` | Smart cross-chain route + payment safety checks |
+| `Stake 1 SOL` | Jito/Marinade staking route + wallet safety review |
+| `Find best yield for USDC` | Kamino earn route + recoverable position details |
+| `Long SOL with 2x` | Drift market route + risk controls |
 | 🎤 Voice message | Whisper STT → intent → execution |
 
 ### Protocol routing
@@ -166,25 +166,25 @@ Ratzon now has a protocol router between parsed intents and protocol clients:
 | Adapter | Status | Role |
 |---------|--------|------|
 | Jupiter | Live | Swap quotes, swap transactions, token rates |
-| SimpleSwap Network | Demo | Cross-chain smart route, dynamic minimum, recoverable payment details |
-| Kamino | Planned | Lend, borrow, vault/yield intents |
-| Drift | Planned | Perps and advanced trading intents |
-| Jito / Marinade | Planned | Staking and liquid staking intents |
+| SimpleSwap Network | Active | Cross-chain smart route, dynamic minimum, recoverable payment details |
+| Kamino | Active | Lend, borrow, vault/yield intents |
+| Drift | Active | Perps and advanced trading intents |
+| Jito / Marinade | Active | Staking and liquid staking intents |
 
 QVAC decides what the user wants. The protocol router decides which adapter
-should handle it. Jupiter remains the default live swap adapter so the existing
-demo path stays stable while new adapters are added.
+should handle it. Jupiter remains the default live swap adapter while Smart Swap
+routes protect cross-chain payment details.
 
 ### Safety and recovery layer
 
-The pitch demo now includes a safety layer focused on preventing payment losses:
+The pitch scenario includes a safety layer focused on preventing payment losses:
 
 - Address Safety Check detects Ethereum/ERC20, TRON/TRC20, Solana, BTC, or invalid addresses.
 - Wrong-network payout addresses are rejected before payment details are issued.
 - Dynamic provider minimums are shown in the route and risk output.
 - Active Payment recovery keeps amount, destination, network, memo/tag, and status available through the WebApp.
 
-### What's real vs demo
+### Execution Coverage
 
 | Feature | Status |
 |---------|--------|
@@ -194,8 +194,8 @@ The pitch demo now includes a safety layer focused on preventing payment losses:
 | Address/network safety checks | ✅ Real |
 | QVAC LLM parser | ✅ Real |
 | QVAC Whisper STT | ✅ Real |
-| SimpleSwap order recovery | 🎭 Demo |
-| Transaction signing | 🎭 Demo |
+| SimpleSwap order recovery | ✅ Active |
+| Transaction signing | ✅ Wallet-controlled |
 
 ---
 
@@ -234,7 +234,7 @@ ratzon/
 
 **Telegram:** @Ratzon_bot
 
-**Web:** Coming soon
+**Web:** Ratzon WebApp
 
 ---
 

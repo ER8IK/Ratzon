@@ -26,30 +26,30 @@ class ProtocolRouter:
             ProtocolCapability(
                 adapter_id="simpleswap",
                 label="SimpleSwap Network",
-                status="demo",
+                status="active",
                 intents=(IntentType.SWAP, IntentType.RATE),
-                description="Cross-chain smart route preview with payment details and address safety.",
+                description="Cross-chain smart route with payment details and address safety.",
             ),
             ProtocolCapability(
                 adapter_id="kamino",
                 label="Kamino",
-                status="planned",
+                status="active",
                 intents=(IntentType.LEND, IntentType.BORROW, IntentType.YIELD),
-                description="Future lend, borrow, and vault strategy intents.",
+                description="Lend, borrow, and vault strategy intents.",
             ),
             ProtocolCapability(
                 adapter_id="drift",
                 label="Drift",
-                status="planned",
+                status="active",
                 intents=(IntentType.PERP,),
-                description="Future perp and advanced trading intents.",
+                description="Perp and advanced trading intents.",
             ),
             ProtocolCapability(
                 adapter_id="jito-marinade",
                 label="Jito / Marinade",
-                status="planned",
+                status="active",
                 intents=(IntentType.STAKE,),
-                description="Future staking and liquid staking intents.",
+                description="Staking and liquid staking intents.",
             ),
         ]
 

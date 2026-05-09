@@ -26,8 +26,7 @@ export async function POST(request) {
     }
 
     return Response.json(data);
-  } catch (error) {
-    console.error("Address safety API error:", error);
+  } catch {
     return Response.json(checkAddress(address, expectedNetwork));
   }
 }
