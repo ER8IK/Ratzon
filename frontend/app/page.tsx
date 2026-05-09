@@ -43,6 +43,18 @@ function getPhantomProvider() {
   return provider?.isPhantom ? provider : null;
 }
 
+async function waitForPhantomProvider(timeoutMs = 3000) {
+  const startedAt = Date.now();
+  let provider = getPhantomProvider();
+
+  while (!provider && Date.now() - startedAt < timeoutMs) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    provider = getPhantomProvider();
+  }
+
+  return provider;
+}
+
 function isMobileDevice() {
   if (typeof navigator === "undefined") return false;
 
@@ -78,10 +90,13 @@ function decodeBase64Transaction(transaction: string) {
   return bytes;
 }
 
-function buildPhantomBrowseUrl(intent?: string) {
+function buildPhantomBrowseUrl(intent?: string, autoExecute = false) {
   const target = new URL(window.location.pathname || "/", window.location.origin);
   if (intent?.trim()) {
     target.searchParams.set("intent", intent.trim());
+  }
+  if (autoExecute) {
+    target.searchParams.set("execute", "1");
   }
   const targetUrl = target.toString();
   const refUrl = window.location.origin;
@@ -136,7 +151,9 @@ export default function Home() {
   const [phantomUrl, setPhantomUrl] = useState<string | null>(null);
   const [txSignature, setTxSignature] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pendingPhantomExecution, setPendingPhantomExecution] = useState(false);
   const resultRef = useRef<HTMLDivElement | null>(null);
+  const autoConfirmAttemptedRef = useRef(false);
 
   useEffect(() => {
     try {
@@ -173,8 +190,15 @@ export default function Home() {
     const intent = params.get("intent");
     if (!intent?.trim()) return;
 
-    handleSubmit(intent);
+    const shouldExecute = params.get("execute") === "1";
+    if (shouldExecute) {
+      autoConfirmAttemptedRef.current = false;
+      setPendingPhantomExecution(true);
+    }
+
+    handleSubmit(intent, { preservePendingExecution: shouldExecute });
     params.delete("intent");
+    params.delete("execute");
     const nextQuery = params.toString();
     window.history.replaceState(
       null,
@@ -203,7 +227,15 @@ export default function Home() {
     });
   }
 
-  async function handleSubmit(text: string) {
+  async function handleSubmit(
+    text: string,
+    options: { preservePendingExecution?: boolean } = {},
+  ) {
+    if (!options.preservePendingExecution) {
+      autoConfirmAttemptedRef.current = false;
+      setPendingPhantomExecution(false);
+    }
+
     setLastQuery(text);
     rememberIntent(text);
     setLoading(true);
@@ -232,27 +264,36 @@ export default function Home() {
     }
   }
 
-  async function handleConfirm() {
+  async function handleConfirm(
+    options: { allowMobileHandoff?: boolean; waitForProvider?: boolean } = {},
+  ) {
     if (!lastQuery) return;
 
+    const allowMobileHandoff = options.allowMobileHandoff ?? true;
     setConfirmError(null);
     setConfirmLoading(true);
     setPhantomUrl(null);
     setTxSignature(null);
 
     try {
-      const provider = getPhantomProvider();
+      const provider = options.waitForProvider
+        ? await waitForPhantomProvider()
+        : getPhantomProvider();
       const inTelegramWebView = isTelegramWebView();
       const mobileDevice = isMobileDevice();
 
-      if (!provider && (mobileDevice || inTelegramWebView)) {
-        setPhantomUrl(buildPhantomBrowseUrl(lastQuery));
+      if (!provider && allowMobileHandoff && (mobileDevice || inTelegramWebView)) {
+        autoConfirmAttemptedRef.current = false;
+        setPendingPhantomExecution(true);
+        setPhantomUrl(buildPhantomBrowseUrl(lastQuery, true));
         return;
       }
 
       if (!provider) {
         throw new Error(
-          "Phantom extension was not detected in this browser tab. Enable Phantom, refresh, and try again.",
+          allowMobileHandoff
+            ? "Phantom extension was not detected in this browser tab. Enable Phantom, refresh, and try again."
+            : "Phantom provider was not detected inside Phantom Browser. Refresh in Phantom and try again.",
         );
       }
 
@@ -297,25 +338,49 @@ export default function Home() {
         );
         if (signature) {
           setTxSignature(signature);
+          setPendingPhantomExecution(false);
           return;
         }
         throw new Error("Phantom did not return a transaction signature.");
       }
 
       if (mobileDevice && !inTelegramWebView) {
-        window.location.assign(
-          data.phantom_browse_url || buildPhantomBrowseUrl(lastQuery),
-        );
+        window.location.assign(buildPhantomBrowseUrl(lastQuery, true));
         return;
       }
 
       return;
     } catch (e: any) {
+      setPendingPhantomExecution(false);
       setConfirmError(e?.message || "Could not prepare Phantom transaction.");
     } finally {
       setConfirmLoading(false);
     }
   }
+
+  useEffect(() => {
+    if (
+      !pendingPhantomExecution ||
+      !result?.quote ||
+      !lastQuery ||
+      loading ||
+      confirmLoading ||
+      txSignature ||
+      autoConfirmAttemptedRef.current
+    ) {
+      return;
+    }
+
+    autoConfirmAttemptedRef.current = true;
+    handleConfirm({ allowMobileHandoff: false, waitForProvider: true });
+  }, [
+    pendingPhantomExecution,
+    result,
+    lastQuery,
+    loading,
+    confirmLoading,
+    txSignature,
+  ]);
 
   return (
     <main className="min-h-screen bg-[#070909] text-[#f6f8f7]">
