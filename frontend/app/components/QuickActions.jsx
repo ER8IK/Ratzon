@@ -3,12 +3,13 @@
 import {
   ArrowRightLeft,
   CircleDollarSign,
+  History,
   Percent,
   Scale,
   Wallet,
 } from "lucide-react";
 
-const QUICK_ACTIONS = [
+const DEFAULT_QUICK_ACTIONS = [
   { label: "SOL to USDC", value: "Swap 1 SOL to USDC", icon: ArrowRightLeft },
   { label: "USDC to BONK", value: "Swap 100 USDC to BONK", icon: ArrowRightLeft },
   { label: "SOL price", value: "Price of SOL", icon: CircleDollarSign },
@@ -17,10 +18,19 @@ const QUICK_ACTIONS = [
   { label: "Rate", value: "Rate SOL to USDC", icon: Percent },
 ];
 
-export default function QuickActions({ onSelect }) {
+export default function QuickActions({ onSelect, recentIntents }) {
+  const recent = Array.isArray(recentIntents) ? recentIntents : [];
+  const actions = recent.length
+    ? recent.map((intent) => ({
+        label: intent,
+        value: intent,
+        icon: History,
+      }))
+    : DEFAULT_QUICK_ACTIONS;
+
   return (
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-      {QUICK_ACTIONS.map((action) => {
+      {actions.map((action) => {
         const Icon = action.icon;
         return (
           <button

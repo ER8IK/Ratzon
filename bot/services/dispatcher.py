@@ -5,10 +5,10 @@ from dataclasses import dataclass
 from bot.intents.models import (
     AnyIntent, IntentType, SwapIntent, BalanceIntent,
     PriceIntent, RateIntent, CompareIntent,
-    QuoteResult, RiskReport,
+    ProtocolIntent, QuoteResult, RiskReport,
 )
-from bot.solana.jupiter import jupiter_client
 from bot.solana.jupiter_price import jupiter_price_client
+from bot.protocols import protocol_router
 from bot.risk.engine import risk_engine
 from bot.services import formatter
 
@@ -23,6 +23,7 @@ class DispatchResult:
     quote: QuoteResult = None
     risk: RiskReport = None
     quote_raw: dict = None
+    adapter_id: str = None
 
 
 class IntentDispatcher:
@@ -40,6 +41,8 @@ class IntentDispatcher:
             return await self._handle_compare(intent)
         elif intent.intent_type == IntentType.BALANCE:
             return self._handle_balance(intent)
+        elif isinstance(intent, ProtocolIntent):
+            return self._handle_protocol_planned(intent)
         else:
             return DispatchResult(
                 text=formatter.format_intent_unknown(intent.raw_text),
@@ -52,16 +55,21 @@ class IntentDispatcher:
                 text=formatter.format_parse_error(intent), intent=intent,
             )
         intent.slippage_bps = self._resolve_slippage(intent)
-        quote, raw = await jupiter_client.get_quote(intent)
-        if quote is None:
+        envelope = await protocol_router.quote_swap(intent)
+        if envelope is None:
             return DispatchResult(
                 text=formatter.format_no_route(intent), intent=intent,
             )
+        quote = envelope.quote
         risk = risk_engine.evaluate(intent, quote)
         return DispatchResult(
             text=formatter.format_swap_response(intent, quote, risk),
             show_confirm_button=True,
-            intent=intent, quote=quote, risk=risk, quote_raw=raw,
+            intent=intent,
+            quote=quote,
+            risk=risk,
+            quote_raw=envelope.raw_quote,
+            adapter_id=envelope.adapter_id,
         )
 
     def _resolve_slippage(self, intent: SwapIntent) -> int:
@@ -97,14 +105,17 @@ class IntentDispatcher:
             confidence=1.0, amount=intent.amount or 1.0,
             input_token=intent.input_token, output_token=intent.output_token,
         )
-        quote, _ = await jupiter_client.get_quote(swap_intent)
-        if quote is None:
+        envelope = await protocol_router.quote_swap(swap_intent)
+        if envelope is None:
             return DispatchResult(
                 text=formatter.format_no_route(swap_intent), intent=intent,
             )
         return DispatchResult(
-            text=formatter.format_rate(intent, quote),
-            intent=intent, quote=quote,
+            text=formatter.format_rate(intent, envelope.quote),
+            intent=intent,
+            quote=envelope.quote,
+            quote_raw=envelope.raw_quote,
+            adapter_id=envelope.adapter_id,
         )
 
     async def _handle_compare(self, intent: CompareIntent) -> DispatchResult:
@@ -129,6 +140,13 @@ class IntentDispatcher:
     def _handle_balance(self, intent: BalanceIntent) -> DispatchResult:
         return DispatchResult(
             text=formatter.format_balance_mock(), intent=intent,
+        )
+
+    def _handle_protocol_planned(self, intent: ProtocolIntent) -> DispatchResult:
+        return DispatchResult(
+            text=formatter.format_protocol_planned(intent),
+            intent=intent,
+            adapter_id=intent.protocol,
         )
 
 

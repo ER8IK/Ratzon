@@ -26,9 +26,13 @@ User (Telegram / Web)
 │         │ Intent Dispatcher│           │
 │         └────────┬────────┘           │
 │                  │                    │
+│         ┌────────▼────────┐           │
+│         │ Protocol Router │           │
+│         └────────┬────────┘           │
+│                  │                    │
 │    ┌─────────────┼──────────────┐     │
 │    ▼             ▼              ▼     │
-│ Jupiter API  Risk Engine  Formatter   │
+│ Jupiter      Risk Engine    Formatter │
 └───────────────────────────────────────┘
         │
         ▼
@@ -69,11 +73,15 @@ cd ratzon
 
 ```bash
 cd qvac_service
-npm install
-node server.js
+corepack pnpm install
+corepack pnpm start
 # Runs on http://localhost:3000
 # First run downloads AI models (~1GB)
 ```
+
+Set `QVAC_URL=http://localhost:3000` for local bot runs. See
+[`qvac_service/README.md`](qvac_service/README.md) for health checks and sample
+requests.
 
 ### 3. Start Python bot
 
@@ -83,7 +91,7 @@ cp .env.example .env
 # Set WEB_APP_URL to your public HTTPS frontend URL for Telegram Mini App buttons
 
 pip install -r requirements.txt
-python -m bot.main
+python3 -m bot.main
 # Bot + API server on port 8080
 # Frontend starts automatically on http://localhost:4000
 ```
@@ -145,7 +153,25 @@ docker-compose up
 | `Price of BONK` | Live price from Jupiter |
 | `Compare SOL and JUP` | Side-by-side price comparison |
 | `Rate SOL to USDC` | Current exchange rate |
+| `Stake 1 SOL` | Recognized as Jito/Marinade staking intent; execution planned |
+| `Find best yield for USDC` | Recognized as Kamino yield intent; execution planned |
+| `Long SOL with 2x` | Recognized as Drift perp intent; execution planned |
 | 🎤 Voice message | Whisper STT → intent → execution |
+
+### Protocol routing
+
+Ratzon now has a protocol router between parsed intents and protocol clients:
+
+| Adapter | Status | Role |
+|---------|--------|------|
+| Jupiter | Live | Swap quotes, swap transactions, token rates |
+| Kamino | Planned | Lend, borrow, vault/yield intents |
+| Drift | Planned | Perps and advanced trading intents |
+| Jito / Marinade | Planned | Staking and liquid staking intents |
+
+QVAC decides what the user wants. The protocol router decides which adapter
+should handle it. Jupiter remains the default live swap adapter so the existing
+demo path stays stable while new adapters are added.
 
 ### What's real vs demo
 
