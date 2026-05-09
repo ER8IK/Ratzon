@@ -17,10 +17,20 @@ import QuickActions from "@/components/QuickActions";
 
 const TRUST_ITEMS = [
   { label: "Parser", value: "QVAC", icon: Radio },
-  { label: "Routing", value: "Jupiter", icon: CircleDollarSign },
+  { label: "Routing", value: "Router", icon: CircleDollarSign },
   { label: "Signing", value: "Phantom", icon: Wallet },
   { label: "Keys", value: "Not stored", icon: ShieldCheck },
 ];
+
+const PROTOCOL_MODES = [
+  { label: "Swap", value: "Jupiter", status: "Live", intent: "Swap 1 SOL to USDC" },
+  { label: "Earn", value: "Kamino", status: "Next", intent: "Find best yield for USDC" },
+  { label: "Stake", value: "Jito", status: "Next", intent: "Stake 1 SOL" },
+  { label: "Trade", value: "Drift", status: "Next", intent: "Long SOL with 2x" },
+];
+
+const RECENT_INTENTS_KEY = "ratzon:recent-intents";
+const MAX_RECENT_INTENTS = 5;
 
 function getPhantomProvider() {
   if (typeof window === "undefined") return null;
@@ -39,6 +49,21 @@ function isMobileDevice() {
   return (
     /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
     (navigator.maxTouchPoints > 1 && /Macintosh/i.test(navigator.userAgent))
+  );
+}
+
+function isTelegramWebView() {
+  if (typeof window === "undefined" || typeof navigator === "undefined") {
+    return false;
+  }
+
+  const browserWindow = window as typeof window & {
+    Telegram?: unknown;
+  };
+
+  return Boolean(
+    browserWindow.Telegram ||
+      /Telegram|TelegramBot|TMA|WebApp/i.test(navigator.userAgent),
   );
 }
 
@@ -79,6 +104,7 @@ async function signWithInjectedPhantom(provider: any, transaction: string) {
 
 export default function Home() {
   const [lastQuery, setLastQuery] = useState("");
+  const [recentIntents, setRecentIntents] = useState<string[]>([]);
   const [result, setResult] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [wallet, setWallet] = useState("");
@@ -88,6 +114,24 @@ export default function Home() {
   const [txSignature, setTxSignature] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const resultRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(RECENT_INTENTS_KEY);
+      if (!saved) return;
+
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) {
+        setRecentIntents(
+          parsed
+            .filter((item) => typeof item === "string" && item.trim())
+            .slice(0, MAX_RECENT_INTENTS),
+        );
+      }
+    } catch {
+      setRecentIntents([]);
+    }
+  }, []);
 
   useEffect(() => {
     if ((!result && !error) || !resultRef.current) return;
@@ -101,8 +145,29 @@ export default function Home() {
     });
   }, [result, error]);
 
+  function rememberIntent(text: string) {
+    const normalized = text.trim();
+    if (!normalized) return;
+
+    setRecentIntents((current) => {
+      const next = [
+        normalized,
+        ...current.filter((item) => item.toLowerCase() !== normalized.toLowerCase()),
+      ].slice(0, MAX_RECENT_INTENTS);
+
+      try {
+        window.localStorage.setItem(RECENT_INTENTS_KEY, JSON.stringify(next));
+      } catch {
+        // localStorage can be blocked in some WebViews; the UI still works.
+      }
+
+      return next;
+    });
+  }
+
   async function handleSubmit(text: string) {
     setLastQuery(text);
+    rememberIntent(text);
     setLoading(true);
     setError(null);
     setResult(null);
@@ -139,8 +204,9 @@ export default function Home() {
 
     try {
       const provider = getPhantomProvider();
+      const inTelegramWebView = isTelegramWebView();
 
-      if (!provider && isMobileDevice()) {
+      if (!provider && isMobileDevice() && !inTelegramWebView) {
         window.location.assign(buildPhantomBrowseUrl());
         return;
       }
@@ -187,7 +253,7 @@ export default function Home() {
         throw new Error("Phantom did not return a transaction signature.");
       }
 
-      if (isMobileDevice()) {
+      if (isMobileDevice() && !inTelegramWebView) {
         window.location.assign(
           data.phantom_browse_url || buildPhantomBrowseUrl(),
         );
@@ -263,11 +329,51 @@ export default function Home() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#93a0a1]">
-                    Fast intents
+                    {recentIntents.length ? "Recent intents" : "Fast intents"}
                   </p>
                   <Zap className="h-4 w-4 text-[#f0c75e]" />
                 </div>
-                <QuickActions onSelect={handleSubmit} />
+                <QuickActions
+                  recentIntents={recentIntents}
+                  onSelect={handleSubmit}
+                />
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#93a0a1]">
+                    Protocol modes
+                  </p>
+                  <CircleDollarSign className="h-4 w-4 text-[#62d5f6]" />
+                </div>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {PROTOCOL_MODES.map((mode) => (
+                    <button
+                      key={mode.label}
+                      type="button"
+                      onClick={() => handleSubmit(mode.intent)}
+                      className="min-h-20 rounded-lg border border-[#263033] bg-[#0b1011] px-3 py-3 text-left transition-colors hover:border-[#62d5f6] hover:bg-[#111819] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ff4a50]"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-semibold text-white">
+                          {mode.label}
+                        </span>
+                        <span
+                          className={`rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] ${
+                            mode.status === "Live"
+                              ? "bg-[#0d2a1d] text-[#70e1a6]"
+                              : "bg-[#251b10] text-[#f0c75e]"
+                          }`}
+                        >
+                          {mode.status}
+                        </span>
+                      </div>
+                      <p className="mt-2 truncate text-xs text-[#93a0a1]">
+                        {mode.value}
+                      </p>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -339,6 +445,7 @@ export default function Home() {
                 confirmError={confirmError}
                 phantomUrl={phantomUrl}
                 txSignature={txSignature}
+                inTelegramWebView={isTelegramWebView()}
                 onReset={() => {
                   setResult(null);
                   setWallet("");

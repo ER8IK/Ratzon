@@ -11,7 +11,11 @@ class IntentType(str, Enum):
     PRICE   = "price"
     RATE    = "rate"
     COMPARE = "compare"
+    LEND    = "lend"
+    BORROW  = "borrow"
     STAKE   = "stake"
+    PERP    = "perp"
+    YIELD   = "yield"
     UNKNOWN = "unknown"
 
 
@@ -79,9 +83,19 @@ class CompareIntent(Intent):
     token_b: Optional[str] = None
 
 
+@dataclass
+class ProtocolIntent(Intent):
+    protocol: Optional[str] = None
+    action: Optional[str] = None
+    token: Optional[str] = None
+    amount: Optional[float] = None
+    side: Optional[str] = None
+    leverage: Optional[float] = None
+
+
 AnyIntent = Union[
     SwapIntent, SendIntent, BalanceIntent,
-    PriceIntent, RateIntent, CompareIntent, Intent
+    PriceIntent, RateIntent, CompareIntent, ProtocolIntent, Intent
 ]
 
 

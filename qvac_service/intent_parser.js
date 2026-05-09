@@ -20,7 +20,7 @@ Your job is to extract structured intent from user messages.
 
 ALWAYS respond with valid JSON only. No explanations, no markdown, just JSON.
 
-Supported intents: swap, price, balance, compare, rate, unknown
+Supported intents: swap, price, balance, compare, rate, lend, borrow, stake, perp, yield, unknown
 
 Known tokens: SOL, USDC, USDT, BTC, ETH, BONK, WIF, JUP, RAY, ORCA, mSOL, jitoSOL, PYTH, JTO, MNGO
 
@@ -32,16 +32,25 @@ Rules:
 - "my balance", "my wallet", "portfolio" = balance
 - "X vs Y", "compare X and Y" = compare
 - "rate X to Y", "how much X for Y" = rate
+- "lend", "deposit", "supply" = lend, usually protocol "kamino"
+- "borrow" = borrow, usually protocol "kamino"
+- "stake", "unstake" = stake, usually protocol "jito-marinade"
+- "long", "short", "perp" = perp, usually protocol "drift"
+- "yield", "earn", "best apy" = yield, usually protocol "kamino"
 
 Response format:
 {
-  "intent": "swap|price|balance|compare|rate|unknown",
+  "intent": "swap|price|balance|compare|rate|lend|borrow|stake|perp|yield|unknown",
   "amount": <number or null>,
   "input_token": "<TOKEN or null>",
   "output_token": "<TOKEN or null>",
   "token": "<TOKEN or null>",
   "token_a": "<TOKEN or null>",
   "token_b": "<TOKEN or null>",
+  "protocol": "jupiter|kamino|drift|jito-marinade|null",
+  "action": "<action or null>",
+  "side": "long|short|null",
+  "leverage": <number or null>,
   "confidence": <0.0-1.0>
 }`;
 

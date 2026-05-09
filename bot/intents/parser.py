@@ -12,7 +12,7 @@ from typing import Union
 
 from .models import (
     Intent, SwapIntent, SendIntent, BalanceIntent, PriceIntent,
-    RateIntent, CompareIntent, IntentType
+    RateIntent, CompareIntent, ProtocolIntent, IntentType
 )
 from .patterns import (
     SWAP_KEYWORDS, SEND_KEYWORDS, BALANCE_KEYWORDS,
@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 AnyIntent = Union[
     SwapIntent, SendIntent, BalanceIntent,
-    PriceIntent, RateIntent, CompareIntent, Intent
+    PriceIntent, RateIntent, CompareIntent, ProtocolIntent, Intent
 ]
 
 # Если regex confidence ниже этого порога — идём в LLM
@@ -47,10 +47,15 @@ class IntentParser:
         intent = self._parse_regex(t, tl)
 
         # Если regex нашёл конкретный intent — используем его сразу.
-        # LLM только fallback на неизвестные или некорректные результаты.
+        # LLM fallback помогает на неизвестных, некорректных или низкоуверенных
+        # результатах.
         if intent.intent_type != IntentType.UNKNOWN:
             if isinstance(intent, (SwapIntent, SendIntent)) and not intent.is_valid():
                 logger.info("Regex returned incomplete intent, trying LLM fallback...")
+            elif intent.confidence < LLM_THRESHOLD:
+                logger.info(
+                    "Regex confidence below threshold, trying LLM fallback..."
+                )
             else:
                 return intent
 
@@ -99,6 +104,10 @@ class IntentParser:
 
         if self._has_keywords(tl, PRICE_KEYWORDS):
             return self._parse_price(text, tl)
+
+        protocol_intent = self._parse_protocol_action(text, tl)
+        if protocol_intent:
+            return protocol_intent
 
         token = self._extract_any_token(tl)
         if token:
@@ -223,6 +232,74 @@ class IntentParser:
                 input_token=normalize_token(in_raw) or in_raw.upper(),
                 output_token=normalize_token(out_raw) or out_raw.upper(),
             )
+        return None
+
+    def _parse_protocol_action(self, text: str, tl: str) -> ProtocolIntent | None:
+        match = re.search(r'\b(?:stake|unstake)\s+(\d+(?:[.,]\d+)?)?\s*(\w+)?', tl)
+        if match:
+            amount, token_raw = match.groups()
+            return ProtocolIntent(
+                raw_text=text,
+                intent_type=IntentType.STAKE,
+                confidence=0.75,
+                protocol="jito-marinade",
+                action="stake",
+                amount=float(amount.replace(',', '.')) if amount else None,
+                token=normalize_token(token_raw or "sol") or (token_raw or "SOL").upper(),
+            )
+
+        match = re.search(r'\b(?:lend|deposit|supply)\s+(\d+(?:[.,]\d+)?)?\s*(\w+)?', tl)
+        if match:
+            amount, token_raw = match.groups()
+            return ProtocolIntent(
+                raw_text=text,
+                intent_type=IntentType.LEND,
+                confidence=0.75,
+                protocol="kamino",
+                action="lend",
+                amount=float(amount.replace(',', '.')) if amount else None,
+                token=normalize_token(token_raw or "usdc") or (token_raw or "USDC").upper(),
+            )
+
+        match = re.search(r'\bborrow\s+(\d+(?:[.,]\d+)?)?\s*(\w+)?', tl)
+        if match:
+            amount, token_raw = match.groups()
+            return ProtocolIntent(
+                raw_text=text,
+                intent_type=IntentType.BORROW,
+                confidence=0.75,
+                protocol="kamino",
+                action="borrow",
+                amount=float(amount.replace(',', '.')) if amount else None,
+                token=normalize_token(token_raw or "sol") or (token_raw or "SOL").upper(),
+            )
+
+        match = re.search(r'\b(long|short)\s+(\w+)(?:\s+(?:with\s+)?(\d+(?:[.,]\d+)?)x)?', tl)
+        if match:
+            side, token_raw, leverage = match.groups()
+            return ProtocolIntent(
+                raw_text=text,
+                intent_type=IntentType.PERP,
+                confidence=0.75,
+                protocol="drift",
+                action="perp",
+                token=normalize_token(token_raw) or token_raw.upper(),
+                side=side,
+                leverage=float(leverage.replace(',', '.')) if leverage else None,
+            )
+
+        match = re.search(r'\b(?:yield|earn|apy)\b.*\b(\w+)\b', tl)
+        if match:
+            token_raw = match.group(1)
+            return ProtocolIntent(
+                raw_text=text,
+                intent_type=IntentType.YIELD,
+                confidence=0.7,
+                protocol="kamino",
+                action="yield",
+                token=normalize_token(token_raw) or token_raw.upper(),
+            )
+
         return None
 
     def _extract_any_token(self, tl: str) -> str | None:

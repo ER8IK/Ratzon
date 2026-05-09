@@ -23,11 +23,36 @@ export default function ResultCard({
   confirmError,
   phantomUrl,
   txSignature,
+  inTelegramWebView = false,
   onReset,
 }) {
   if (!result) return null;
 
   const { intent, quote, risk } = result;
+
+  if (!quote) {
+    return (
+      <div className="space-y-4 p-4 sm:p-5">
+        <div className="rounded-lg border border-[#263033] bg-[#0b1011] p-4">
+          <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#93a0a1]">
+            <Route className="h-4 w-4 text-[#62d5f6]" />
+            Intent result
+          </div>
+          <p className="whitespace-pre-line text-sm leading-6 text-[#d7e0e1]">
+            {stripHtml(result.text || "No route data returned.")}
+          </p>
+        </div>
+
+        <button
+          onClick={onReset}
+          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-[#263033] bg-[#0b1011] px-4 py-2 text-sm font-semibold text-[#c5ced0] transition-colors hover:border-[#62d5f6] hover:text-white"
+        >
+          <RefreshCcw className="h-4 w-4" />
+          Reset
+        </button>
+      </div>
+    );
+  }
 
   const riskLevel = normalizeRiskLevel(risk);
   const riskTone =
@@ -158,7 +183,7 @@ export default function ResultCard({
             ) : (
               <>
                 <ExternalLink className="h-4 w-4" />
-                Prepare in Phantom
+                {inTelegramWebView ? "Prepare transaction" : "Prepare in Phantom"}
               </>
             )}
           </button>
@@ -216,6 +241,10 @@ function normalizeRiskLevel(risk) {
 
 function formatRiskLevel(level) {
   return level.charAt(0).toUpperCase() + level.slice(1);
+}
+
+function stripHtml(value) {
+  return String(value).replace(/<[^>]+>/g, "");
 }
 
 function MetricTile({ icon: Icon, label, value, suffix = "" }) {

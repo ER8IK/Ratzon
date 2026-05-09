@@ -8,7 +8,7 @@
 
 from bot.intents.models import (
     SwapIntent, SendIntent, BalanceIntent, PriceIntent,
-    Intent, IntentType, QuoteResult, RiskReport, RiskLevel
+    Intent, IntentType, ProtocolIntent, QuoteResult, RiskReport, RiskLevel
 )
 
 
@@ -153,6 +153,24 @@ def format_intent_unknown(text: str) -> str:
         "• <code>Send 0.5 SOL to ABC123</code>\n"
         "• <code>Price of BONK</code>\n"
         "• <code>My balance</code>"
+    )
+
+
+def format_protocol_planned(intent: ProtocolIntent) -> str:
+    protocol = intent.protocol or "protocol router"
+    token = f" {intent.token}" if intent.token else ""
+    amount = f"{intent.amount:g} " if intent.amount else ""
+    leverage = f" · {intent.leverage:g}x" if intent.leverage else ""
+    side = f" · {intent.side}" if intent.side else ""
+
+    return (
+        f"🧭 <b>{intent.intent_type.value.title()} intent recognized</b>\n\n"
+        f"Action: <b>{amount}{intent.action or intent.intent_type.value}{token}</b>"
+        f"{side}{leverage}\n"
+        f"Adapter: <b>{protocol}</b>\n\n"
+        "This protocol adapter is registered as a Ratzon route target, but live "
+        "transaction execution is not enabled yet.\n\n"
+        "Live today: <code>Swap 1 SOL to USDC</code> through Jupiter."
     )
 
 

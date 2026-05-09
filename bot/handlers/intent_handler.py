@@ -15,6 +15,7 @@ from aiogram.fsm.context import FSMContext
 from bot.intents.parser import intent_parser
 from bot.intents.llm_parser import llm_parser
 from bot.intents.models import IntentType, SwapIntent
+from bot.protocols import protocol_router
 from bot.services.dispatcher import intent_dispatcher, DispatchResult
 from bot.services.formatter import format_mock_execute_result
 
@@ -90,6 +91,7 @@ async def handle_intent(message: Message, state: FSMContext):
             pending_intent=_serialize_intent(result.intent),
             pending_quote=_serialize_quote(result.quote),
             pending_quote_raw=result.quote_raw,
+            pending_adapter_id=result.adapter_id,
         )
         keyboard = _confirm_keyboard()
 
@@ -161,6 +163,8 @@ async def handle_voice(message: Message, state: FSMContext):
         await state.update_data(
             pending_intent=_serialize_intent(result.intent),
             pending_quote=_serialize_quote(result.quote),
+            pending_quote_raw=result.quote_raw,
+            pending_adapter_id=result.adapter_id,
         )
         keyboard = _confirm_keyboard()
 
@@ -180,7 +184,8 @@ async def handle_confirm_swap(callback: CallbackQuery, state: FSMContext):
 
     data = await state.get_data()
     intent_data = data.get("pending_intent")
-    quote_raw = data.get("pending_quote_raw")  # сырой ответ Jupiter
+    quote_raw = data.get("pending_quote_raw")
+    adapter_id = data.get("pending_adapter_id")
     user_wallet = data.get("user_wallet")
 
     if not intent_data or not quote_raw:
@@ -200,18 +205,18 @@ async def handle_confirm_swap(callback: CallbackQuery, state: FSMContext):
         await state.set_state("waiting_for_wallet")
         return
 
-    # Получаем swap транзакцию от Jupiter
+    # Получаем swap транзакцию от выбранного protocol adapter.
     await callback.message.edit_text(
         "⏳ <b>Preparing transaction...</b>",
         parse_mode="HTML",
     )
 
-    from bot.solana.jupiter import jupiter_client
     from bot.solana.phantom import build_phantom_deeplink, build_solflare_deeplink
 
-    tx_b64 = await jupiter_client.get_swap_transaction(
-        quote_response=quote_raw,
+    tx_b64 = await protocol_router.prepare_swap_transaction(
+        raw_quote=quote_raw,
         user_wallet=user_wallet,
+        adapter_id=adapter_id,
     )
 
     if not tx_b64:

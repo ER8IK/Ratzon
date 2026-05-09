@@ -15,8 +15,8 @@ from aiohttp import web
 
 from bot.intents.models import IntentType
 from bot.intents.parser import intent_parser
+from bot.protocols import protocol_router
 from bot.services.dispatcher import intent_dispatcher
-from bot.solana.jupiter import jupiter_client
 from bot.solana.phantom import (
     build_phantom_app_deeplink,
     build_phantom_browse_deeplink,
@@ -52,9 +52,17 @@ async def handle_intent(request: web.Request) -> web.Response:
                 "amount": getattr(intent, "amount", None),
                 "input_token": getattr(intent, "input_token", None),
                 "output_token": getattr(intent, "output_token", None),
+                "token": getattr(intent, "token", None),
+                "protocol": getattr(intent, "protocol", None),
+                "action": getattr(intent, "action", None),
+                "side": getattr(intent, "side", None),
+                "leverage": getattr(intent, "leverage", None),
             },
             "quote": None,
             "risk": None,
+            "protocol": {
+                "adapter_id": result.adapter_id,
+            } if result.adapter_id else None,
         }
 
         if result.quote:
@@ -114,15 +122,16 @@ async def handle_swap(request: web.Request) -> web.Response:
                 {"error": "Only swap intents can be confirmed"}, status=400
             )
 
-        quote, quote_raw = await jupiter_client.get_quote(intent)
-        if quote is None or quote_raw is None:
+        envelope = await protocol_router.quote_swap(intent)
+        if envelope is None:
             return web.json_response(
                 {"error": "Failed to find a valid quote"}, status=502
             )
 
-        tx_b64 = await jupiter_client.get_swap_transaction(
-            quote_response=quote_raw,
+        tx_b64 = await protocol_router.prepare_swap_transaction(
+            raw_quote=envelope.raw_quote,
             user_wallet=wallet,
+            adapter_id=envelope.adapter_id,
         )
 
         if not tx_b64:

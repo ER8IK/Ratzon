@@ -17,7 +17,7 @@ from typing import Optional
 
 from .models import (
     Intent, SwapIntent, SendIntent, BalanceIntent,
-    PriceIntent, RateIntent, CompareIntent, IntentType
+    PriceIntent, RateIntent, CompareIntent, ProtocolIntent, IntentType
 )
 from .patterns import normalize_token
 
@@ -171,6 +171,27 @@ class LLMParser:
                 amount=llm_result.get("amount", 1.0),
                 input_token=get_token("input_token"),
                 output_token=get_token("output_token"),
+            )
+
+        elif intent_type in {
+            IntentType.LEND,
+            IntentType.BORROW,
+            IntentType.STAKE,
+            IntentType.PERP,
+            IntentType.YIELD,
+        }:
+            protocol = llm_result.get("protocol")
+            action = llm_result.get("action") or intent_type.value
+            return ProtocolIntent(
+                raw_text=raw_text,
+                intent_type=intent_type,
+                confidence=confidence,
+                protocol=protocol,
+                action=action,
+                amount=llm_result.get("amount"),
+                token=get_token("token") or get_token("input_token"),
+                side=llm_result.get("side"),
+                leverage=llm_result.get("leverage"),
             )
 
         return Intent(
