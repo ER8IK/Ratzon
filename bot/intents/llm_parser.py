@@ -12,19 +12,23 @@
 
 import logging
 import os
-import aiohttp
-from typing import Optional
+from typing import Any, Optional
+
+try:
+    import aiohttp
+except ModuleNotFoundError:
+    aiohttp = None
 
 from .models import (
     Intent, SwapIntent, SendIntent, BalanceIntent,
     PriceIntent, RateIntent, CompareIntent, ProtocolIntent, IntentType
 )
-from .patterns import normalize_token
+from .patterns import normalize_token, normalize_network
 
 logger = logging.getLogger(__name__)
 
 QVAC_URL = os.getenv("QVAC_URL", "http://localhost:3000")
-QVAC_TIMEOUT = aiohttp.ClientTimeout(total=15)  # LLM медленнее regex
+QVAC_TIMEOUT = aiohttp.ClientTimeout(total=15) if aiohttp else None  # LLM медленнее regex
 
 
 class LLMParser:
@@ -34,16 +38,21 @@ class LLMParser:
     """
 
     def __init__(self):
-        self._session: Optional[aiohttp.ClientSession] = None
+        self._session: Optional[Any] = None
         self._available: Optional[bool] = None  # кэшируем статус
 
-    async def _get_session(self) -> aiohttp.ClientSession:
+    async def _get_session(self):
+        if aiohttp is None:
+            raise RuntimeError("aiohttp is not installed")
         if self._session is None or self._session.closed:
             self._session = aiohttp.ClientSession(timeout=QVAC_TIMEOUT)
         return self._session
 
     async def is_available(self) -> bool:
         """Проверяет доступность QVAC сервиса."""
+        if aiohttp is None:
+            self._available = False
+            return False
         try:
             session = await self._get_session()
             async with session.get(f"{QVAC_URL}/health") as resp:
@@ -61,6 +70,9 @@ class LLMParser:
             dict с полями intent, amount, input_token, output_token, confidence
             или None если сервис недоступен
         """
+        if aiohttp is None:
+            self._available = False
+            return None
         try:
             session = await self._get_session()
             async with session.post(
@@ -93,6 +105,8 @@ class LLMParser:
         Returns:
             Распознанный текст или None
         """
+        if aiohttp is None:
+            return None
         try:
             session = await self._get_session()
             async with session.post(
@@ -124,6 +138,12 @@ class LLMParser:
             normalized = normalize_token(val.lower())
             return normalized or val.upper()
 
+        def get_network(key: str) -> Optional[str]:
+            val = llm_result.get(key)
+            if not val:
+                return None
+            return normalize_network(str(val).lower()) or str(val).upper()
+
         try:
             intent_type = IntentType(intent_type_str)
         except ValueError:
@@ -137,6 +157,8 @@ class LLMParser:
                 amount=llm_result.get("amount"),
                 input_token=get_token("input_token"),
                 output_token=get_token("output_token"),
+                input_network=get_network("input_network"),
+                output_network=get_network("output_network"),
             )
 
         elif intent_type == IntentType.PRICE:

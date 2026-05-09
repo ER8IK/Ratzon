@@ -2,30 +2,37 @@
 
 import {
   ArrowRightLeft,
-  CircleDollarSign,
+  Activity,
   History,
-  Percent,
-  Scale,
+  Landmark,
+  ShieldCheck,
   Wallet,
 } from "lucide-react";
 
 const DEFAULT_QUICK_ACTIONS = [
-  { label: "SOL to USDC", value: "Swap 1 SOL to USDC", icon: ArrowRightLeft },
-  { label: "USDC to BONK", value: "Swap 100 USDC to BONK", icon: ArrowRightLeft },
-  { label: "SOL price", value: "Price of SOL", icon: CircleDollarSign },
-  { label: "SOL vs JUP", value: "Compare SOL and JUP", icon: Scale },
-  { label: "Balance", value: "My balance", icon: Wallet },
-  { label: "Rate", value: "Rate SOL to USDC", icon: Percent },
+  { label: "Smart Swap", value: "Swap 50 USDT TRC20 to BTC", icon: ArrowRightLeft },
+  { label: "Active Payment", value: "View payment details", icon: Wallet, action: "active-payment" },
+  { label: "Safety Check", value: "Check BTC payout address", icon: ShieldCheck, action: "safety-check" },
+  { label: "Earn / Drift", value: "Long SOL with 2x", icon: Landmark, action: "drift-preview" },
+  { label: "Solana Route", value: "Swap 1 SOL to USDC", icon: Activity },
+  { label: "Smart Rate", value: "Rate USDT to BTC", icon: ArrowRightLeft },
 ];
 
-export default function QuickActions({ onSelect, recentIntents }) {
+export default function QuickActions({ onSelect, onAction, recentIntents }) {
   const recent = Array.isArray(recentIntents) ? recentIntents : [];
+  const defaultValues = new Set(
+    DEFAULT_QUICK_ACTIONS.map((action) => action.value.toLowerCase()),
+  );
+  const recentActions = recent
+    .filter((intent) => !defaultValues.has(intent.toLowerCase()))
+    .slice(0, 3)
+    .map((intent) => ({
+      label: intent,
+      value: intent,
+      icon: History,
+    }));
   const actions = recent.length
-    ? recent.map((intent) => ({
-        label: intent,
-        value: intent,
-        icon: History,
-      }))
+    ? [...DEFAULT_QUICK_ACTIONS, ...recentActions]
     : DEFAULT_QUICK_ACTIONS;
 
   return (
@@ -35,7 +42,7 @@ export default function QuickActions({ onSelect, recentIntents }) {
         return (
           <button
             key={action.value}
-            onClick={() => onSelect(action.value)}
+            onClick={() => action.action ? onAction?.(action.action) : onSelect(action.value)}
             type="button"
             className="group flex min-h-11 items-center gap-2 rounded-lg border border-[#263033] bg-[#0b1011] px-3 py-2 text-left text-sm font-medium text-[#c5ced0] transition-colors hover:border-[#62d5f6] hover:bg-[#111819] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ff4a50]"
           >

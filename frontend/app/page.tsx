@@ -14,6 +14,9 @@ import {
 import IntentInput from "@/components/IntentInput";
 import ResultCard from "@/components/ResultCard";
 import QuickActions from "@/components/QuickActions";
+import ActivePaymentPanel from "@/components/ActivePaymentPanel";
+import DriftPreviewPanel from "@/components/DriftPreviewPanel";
+import SafetyCheckPanel, { SAMPLE_ADDRESSES } from "@/components/SafetyCheckPanel";
 
 const TRUST_ITEMS = [
   { label: "Parser", value: "QVAC", icon: Radio },
@@ -37,6 +40,8 @@ const PROTOCOL_MODE_META: Record<string, { label: string; intent: string }> = {
 };
 
 const RECENT_INTENTS_KEY = "ratzon:recent-intents";
+const CLIENT_ID_KEY = "ratzon:client-id";
+const ACTIVE_ORDER_CACHE_KEY = "ratzon:active-order";
 const MAX_RECENT_INTENTS = 5;
 
 function protocolModeFromCapability(capability: any) {
@@ -189,6 +194,16 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [pendingPhantomExecution, setPendingPhantomExecution] = useState(false);
   const [protocolModes, setProtocolModes] = useState(DEFAULT_PROTOCOL_MODES);
+  const [clientId, setClientId] = useState("");
+  const [safetyAddress, setSafetyAddress] = useState("");
+  const [safetyExpectedNetwork, setSafetyExpectedNetwork] = useState("BTC");
+  const [safetyReport, setSafetyReport] = useState<any | null>(null);
+  const [safetyLoading, setSafetyLoading] = useState(false);
+  const [activeOrder, setActiveOrder] = useState<any | null>(null);
+  const [activeOrderLoading, setActiveOrderLoading] = useState(false);
+  const [activeOrderError, setActiveOrderError] = useState<string | null>(null);
+  const [orderLoading, setOrderLoading] = useState(false);
+  const [orderError, setOrderError] = useState<string | null>(null);
   const resultRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -207,6 +222,29 @@ export default function Home() {
     } catch {
       setRecentIntents([]);
     }
+  }, []);
+
+  useEffect(() => {
+    let id = "";
+    try {
+      const cachedOrder = window.localStorage.getItem(ACTIVE_ORDER_CACHE_KEY);
+      if (cachedOrder) {
+        setActiveOrder(JSON.parse(cachedOrder));
+      }
+
+      id = window.localStorage.getItem(CLIENT_ID_KEY) || "";
+      if (!id) {
+        id = typeof window.crypto?.randomUUID === "function"
+          ? window.crypto.randomUUID()
+          : `client-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        window.localStorage.setItem(CLIENT_ID_KEY, id);
+      }
+    } catch {
+      id = `client-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    }
+
+    setClientId(id);
+    loadActiveOrder(id);
   }, []);
 
   useEffect(() => {
@@ -290,6 +328,19 @@ export default function Home() {
     });
   }
 
+  function rememberActiveOrder(order: any | null) {
+    setActiveOrder(order);
+    try {
+      if (order) {
+        window.localStorage.setItem(ACTIVE_ORDER_CACHE_KEY, JSON.stringify(order));
+      } else {
+        window.localStorage.removeItem(ACTIVE_ORDER_CACHE_KEY);
+      }
+    } catch {
+      // WebView storage can be unavailable; backend recovery still works.
+    }
+  }
+
   async function handleSubmit(
     text: string,
     options: { preservePendingExecution?: boolean } = {},
@@ -306,6 +357,8 @@ export default function Home() {
     setConfirmError(null);
     setPhantomUrl(null);
     setTxSignature(null);
+    setOrderError(null);
+    setSafetyReport(null);
 
     try {
       const res = await fetch("/api/intent", {
@@ -319,10 +372,139 @@ export default function Home() {
         throw new Error(data?.error || `Request failed (${res.status})`);
       }
       setResult(data);
+      if (data?.quote?.output_network) {
+        setSafetyExpectedNetwork(data.quote.output_network);
+      }
     } catch (e: any) {
       setError(e?.message || "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function runAddressCheck(
+    address = safetyAddress,
+    expectedNetwork = result?.quote?.output_network || safetyExpectedNetwork,
+  ) {
+    setSafetyLoading(true);
+    setOrderError(null);
+    try {
+      const res = await fetch("/api/safety/address", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address, expectedNetwork }),
+      });
+      const data = await res.json();
+      if (!res.ok || data?.error) {
+        throw new Error(data?.error || "Address check failed");
+      }
+      setSafetyReport(data);
+      return data;
+    } catch (e: any) {
+      const message = e?.message || "Address check failed.";
+      setSafetyReport({
+        valid: false,
+        compatible: false,
+        detected_label: "Invalid",
+        message,
+        warnings: [message],
+      });
+      return null;
+    } finally {
+      setSafetyLoading(false);
+    }
+  }
+
+  async function handleCreateOrder() {
+    if (!lastQuery || !clientId) return;
+
+    setOrderLoading(true);
+    setOrderError(null);
+    try {
+      let report = safetyReport;
+      if (!report?.compatible) {
+        report = await runAddressCheck();
+      }
+      if (!report?.compatible) {
+        throw new Error("Address network does not match this route.");
+      }
+
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientId,
+          message: lastQuery,
+          payoutAddress: safetyAddress,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || data?.error) {
+        throw new Error(data?.error || "Could not create order");
+      }
+      rememberActiveOrder(data.order || null);
+    } catch (e: any) {
+      setOrderError(e?.message || "Could not create order.");
+    } finally {
+      setOrderLoading(false);
+    }
+  }
+
+  async function loadActiveOrder(id = clientId) {
+    if (!id) return;
+
+    setActiveOrderLoading(true);
+    setActiveOrderError(null);
+    try {
+      const res = await fetch(`/api/orders/active?clientId=${encodeURIComponent(id)}`, {
+        cache: "no-store",
+      });
+      const data = await res.json();
+      if (!res.ok || data?.error) {
+        throw new Error(data?.error || "Could not load active order");
+      }
+      rememberActiveOrder(data.order || null);
+    } catch (e: any) {
+      setActiveOrderError(e?.message || "Could not load active order.");
+    } finally {
+      setActiveOrderLoading(false);
+    }
+  }
+
+  async function refreshActiveOrder() {
+    if (!activeOrder?.order_id) return;
+
+    setActiveOrderLoading(true);
+    setActiveOrderError(null);
+    try {
+      const res = await fetch(`/api/orders/${encodeURIComponent(activeOrder.order_id)}/refresh`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok || data?.error) {
+        throw new Error(data?.error || "Could not refresh order");
+      }
+      rememberActiveOrder(data.order || null);
+    } catch (e: any) {
+      setActiveOrderError(e?.message || "Could not refresh order.");
+    } finally {
+      setActiveOrderLoading(false);
+    }
+  }
+
+  function handleQuickAction(action: string) {
+    if (action === "active-payment") {
+      loadActiveOrder();
+      return;
+    }
+    if (action === "safety-check") {
+      setSafetyExpectedNetwork("BTC");
+      setSafetyAddress(SAMPLE_ADDRESSES.wrongErc20);
+      setSafetyReport(null);
+      return;
+    }
+    if (action === "drift-preview") {
+      handleSubmit("Long SOL with 2x");
     }
   }
 
@@ -467,7 +649,7 @@ export default function Home() {
                     Intent console
                   </p>
                   <h1 className="mt-2 text-2xl font-semibold leading-tight text-white sm:text-3xl">
-                    Swap, price, and compare in plain English.
+                    Smart swap guardrail for payments, routes, and recovery.
                   </h1>
                 </div>
                 <span className="inline-flex h-8 items-center gap-2 rounded-lg border border-[#1f6d4b] bg-[#0d2419] px-3 text-xs font-medium text-[#70e1a6]">
@@ -490,8 +672,37 @@ export default function Home() {
                 <QuickActions
                   recentIntents={recentIntents}
                   onSelect={handleSubmit}
+                  onAction={handleQuickAction}
                 />
               </div>
+
+              <ActivePaymentPanel
+                order={activeOrder}
+                loading={activeOrderLoading}
+                error={activeOrderError}
+                onView={() => loadActiveOrder()}
+                onRefresh={refreshActiveOrder}
+              />
+
+              <SafetyCheckPanel
+                expectedNetwork={safetyExpectedNetwork}
+                onExpectedNetworkChange={(value: string) => {
+                  setSafetyExpectedNetwork(value);
+                  setSafetyReport(null);
+                }}
+                address={safetyAddress}
+                onAddressChange={(value: string) => {
+                  setSafetyAddress(value);
+                  setSafetyReport(null);
+                }}
+                report={safetyReport}
+                loading={safetyLoading}
+                onCheck={() => runAddressCheck()}
+              />
+
+              <DriftPreviewPanel
+                onCheckMarket={() => handleSubmit("Long SOL with 2x")}
+              />
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-3">
@@ -608,7 +819,21 @@ export default function Home() {
                   setPhantomUrl(null);
                   setTxSignature(null);
                   setConfirmError(null);
+                  setOrderError(null);
+                  setSafetyReport(null);
                 }}
+                safetyAddress={safetyAddress}
+                onSafetyAddressChange={(value: string) => {
+                  setSafetyAddress(value);
+                  setSafetyReport(null);
+                }}
+                addressReport={safetyReport}
+                addressChecking={safetyLoading}
+                onCheckAddress={() => runAddressCheck()}
+                onCreateOrder={handleCreateOrder}
+                orderLoading={orderLoading}
+                orderError={orderError}
+                activeOrder={activeOrder}
               />
             ) : (
               <RoutePlaceholder />
@@ -630,7 +855,7 @@ function RoutePlaceholder({ loading = false }: { loading?: boolean }) {
               Preview
             </p>
             <p className="mt-2 text-2xl font-semibold text-white">
-              SOL to USDC
+              USDT TRC20 to BTC
             </p>
           </div>
           {loading ? (
@@ -642,23 +867,23 @@ function RoutePlaceholder({ loading = false }: { loading?: boolean }) {
 
         <div className="mt-8 flex items-center justify-between gap-3">
           <div className="route-node">
-            <span>SOL</span>
+            <span>USDT</span>
           </div>
           <div className="h-px min-w-8 flex-1 bg-[#455255]" />
           <div className="route-node route-node-accent">
-            <span>R</span>
+            <span>OK</span>
           </div>
           <div className="h-px min-w-8 flex-1 bg-[#455255]" />
           <div className="route-node">
-            <span>USDC</span>
+            <span>BTC</span>
           </div>
         </div>
 
         <div className="mt-8 grid grid-cols-3 gap-2 text-center text-xs">
           {[
-            ["Impact", loading ? "..." : "--"],
-            ["Score", loading ? "..." : "--"],
-            ["Fee", loading ? "..." : "--"],
+            ["Minimum", loading ? "..." : "--"],
+            ["Address", loading ? "..." : "--"],
+            ["Recovery", loading ? "..." : "--"],
           ].map(([label, value]) => (
             <div
               key={label}
@@ -674,9 +899,9 @@ function RoutePlaceholder({ loading = false }: { loading?: boolean }) {
       <div className="mt-4 grid gap-2">
         {[
           ["1", "Intent parsed"],
-          ["2", "Jupiter route selected"],
-          ["3", "Risk checked"],
-          ["4", "Ready for Phantom"],
+          ["2", "Smart route selected"],
+          ["3", "Address network checked"],
+          ["4", "Payment details recoverable"],
         ].map(([number, label], index) => (
           <div
             key={label}

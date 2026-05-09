@@ -38,6 +38,8 @@ class SwapIntent(Intent):
     amount:       Optional[float] = None
     input_token:  Optional[str]   = None
     output_token: Optional[str]   = None
+    input_network: Optional[str]  = None
+    output_network: Optional[str] = None
     slippage_bps: int = 50
 
     def is_valid(self) -> bool:
@@ -130,6 +132,12 @@ class QuoteResult:
     price_impact_pct: float
     route_label:      str
     fees_sol:         float
+    provider_label:   str = "Jupiter"
+    input_network:    str = "SOLANA"
+    output_network:   str = "SOLANA"
+    min_amount:       Optional[float] = None
+    payment_mode:     str = "wallet_signature"
+    safety_checks:    list[str] = field(default_factory=list)
 
     @property
     def price_impact_display(self) -> str:

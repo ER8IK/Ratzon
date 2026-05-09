@@ -3,6 +3,7 @@
 import {
   AlertTriangle,
   ArrowRight,
+  CheckCircle2,
   ExternalLink,
   Fuel,
   Gauge,
@@ -13,6 +14,7 @@ import {
   TrendingDown,
   Wallet,
 } from "lucide-react";
+import SafetyCheckPanel from "./SafetyCheckPanel";
 
 export default function ResultCard({
   result,
@@ -27,6 +29,15 @@ export default function ResultCard({
   walletExecutionReady = false,
   onOpenWalletLink,
   onReset,
+  safetyAddress = "",
+  onSafetyAddressChange,
+  addressReport,
+  addressChecking,
+  onCheckAddress,
+  onCreateOrder,
+  orderLoading,
+  orderError,
+  activeOrder,
 }) {
   if (!result) return null;
 
@@ -74,6 +85,8 @@ export default function ResultCard({
   const formattedImpact = Number.isFinite(priceImpact)
     ? `${priceImpact.toFixed(4)}%`
     : "--";
+  const isPaymentOrder = quote?.payment_mode === "deposit_address";
+  const expectedNetwork = quote?.output_network || "BTC";
 
   return (
     <div className="space-y-4 p-4 sm:p-5">
@@ -106,7 +119,16 @@ export default function ResultCard({
             suffix={intent?.output_token || ""}
           />
           <MetricTile icon={Gauge} label="Impact" value={formattedImpact} />
-          <MetricTile icon={Fuel} label="Fee" value="~0.000005" suffix="SOL" />
+          {isPaymentOrder ? (
+            <MetricTile
+              icon={ShieldCheck}
+              label="Minimum"
+              value={quote?.min_amount || "--"}
+              suffix={intent?.input_token || ""}
+            />
+          ) : (
+            <MetricTile icon={Fuel} label="Fee" value="~0.000005" suffix="SOL" />
+          )}
         </div>
       </div>
 
@@ -118,6 +140,11 @@ export default function ResultCard({
         <p className="mt-3 break-all font-mono text-sm leading-6 text-[#c5ced0]">
           {quote?.route_label || "Route label unavailable"}
         </p>
+        {quote?.input_network || quote?.output_network ? (
+          <p className="mt-2 text-sm text-[#93a0a1]">
+            Network: {quote.input_token || intent?.input_token} {quote.input_network} → {quote.output_token || intent?.output_token} {quote.output_network}
+          </p>
+        ) : null}
       </div>
 
       <div className="rounded-lg border border-[#263033] bg-[#0b1011] p-4">
@@ -140,8 +167,88 @@ export default function ResultCard({
             ))}
           </div>
         )}
+        {quote?.safety_checks?.length > 0 && (
+          <div className="mt-3 space-y-2">
+            {quote.safety_checks.map((check, index) => (
+              <p key={index} className="flex items-center gap-2 text-sm leading-5 text-[#bdf5d5]">
+                <CheckCircle2 className="h-4 w-4 flex-none text-[#70e1a6]" />
+                {check}
+              </p>
+            ))}
+          </div>
+        )}
       </div>
 
+      {isPaymentOrder ? (
+        <div className="space-y-4 rounded-lg border border-[#263033] bg-[#101516] p-4">
+          <div>
+            <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#93a0a1]">
+              <Wallet className="h-4 w-4 text-[#62d5f6]" />
+              Smart order recovery
+            </div>
+            <p className="text-sm leading-6 text-[#c5ced0]">
+              Paste the payout address. Ratzon rejects wrong-network addresses before issuing payment details.
+            </p>
+          </div>
+
+          <SafetyCheckPanel
+            expectedNetwork={expectedNetwork}
+            onExpectedNetworkChange={() => {}}
+            address={safetyAddress}
+            onAddressChange={onSafetyAddressChange}
+            report={addressReport}
+            loading={addressChecking}
+            onCheck={onCheckAddress}
+          />
+
+          {orderError && (
+            <div className="rounded-lg border border-[#6b2428] bg-[#2a1013] p-3 text-sm text-[#ffb8ba]">
+              <div className="mb-1 flex items-center gap-2 font-semibold text-white">
+                <AlertTriangle className="h-4 w-4 text-[#ff6268]" />
+                Order blocked
+              </div>
+              {orderError}
+            </div>
+          )}
+
+          {activeOrder && (
+            <div className="rounded-lg border border-[#1f6d4b] bg-[#0d2a1d] p-3 text-sm text-[#bdf5d5]">
+              <div className="mb-1 flex items-center gap-2 font-semibold text-white">
+                <CheckCircle2 className="h-4 w-4 text-[#70e1a6]" />
+                Payment details saved
+              </div>
+              Order {activeOrder.order_id} is recoverable from Active Payment.
+            </div>
+          )}
+
+          <div className="grid gap-2 sm:grid-cols-2">
+            <button
+              onClick={onCreateOrder}
+              disabled={orderLoading || !addressReport?.compatible}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#e83a42] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#ff4a50] disabled:cursor-not-allowed disabled:bg-[#273034] disabled:text-[#68777c]"
+            >
+              {orderLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Creating
+                </>
+              ) : (
+                <>
+                  <ShieldCheck className="h-4 w-4" />
+                  Create guarded order
+                </>
+              )}
+            </button>
+            <button
+              onClick={onReset}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-[#263033] bg-[#0b1011] px-4 py-2 text-sm font-semibold text-[#c5ced0] transition-colors hover:border-[#62d5f6] hover:text-white"
+            >
+              <RefreshCcw className="h-4 w-4" />
+              Reset
+            </button>
+          </div>
+        </div>
+      ) : (
       <div className="rounded-lg border border-[#263033] bg-[#101516] p-4">
         <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#93a0a1]">
           <Wallet className="h-4 w-4 text-[#62d5f6]" />
@@ -234,6 +341,7 @@ export default function ResultCard({
           </a>
         )}
       </div>
+      )}
     </div>
   );
 }

@@ -20,6 +20,20 @@ TOKEN_ALIASES: dict[str, str] = {
     "bsol": "bSOL",
 }
 
+NETWORK_ALIASES: dict[str, str] = {
+    "sol": "SOLANA",
+    "solana": "SOLANA",
+    "spl": "SOLANA",
+    "erc20": "ERC20",
+    "ethereum": "ERC20",
+    "eth": "ERC20",
+    "trc20": "TRC20",
+    "tron": "TRC20",
+    "btc": "BTC",
+    "bitcoin": "BTC",
+    "native": "BTC",
+}
+
 SWAP_KEYWORDS = [
     "swap", "exchange", "trade", "convert", "buy", "sell",
     "обменять", "обмен", "своп", "купить", "продать", "конвертировать",
@@ -64,6 +78,9 @@ SEND_PATTERN = re.compile(
 
 def normalize_token(raw: str) -> str | None:
     return TOKEN_ALIASES.get(raw.strip().lower())
+
+def normalize_network(raw: str) -> str | None:
+    return NETWORK_ALIASES.get(raw.strip().lower())
 
 def is_known_token(symbol: str) -> bool:
     return symbol in TOKEN_ALIASES.values()

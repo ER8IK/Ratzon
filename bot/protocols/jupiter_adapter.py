@@ -1,7 +1,7 @@
 from bot.intents.models import IntentType, SwapIntent
 from bot.solana.jupiter import jupiter_client
 
-from .types import QuoteEnvelope
+from .types import ProviderLimits, QuoteEnvelope
 
 
 class JupiterAdapter:
@@ -28,3 +28,12 @@ class JupiterAdapter:
             quote_response=raw_quote,
             user_wallet=user_wallet,
         )
+
+    async def limits(self, intent: SwapIntent) -> ProviderLimits:
+        return ProviderLimits(min_amount=0.0)
+
+    async def create_order(self, intent: SwapIntent, payout_address: str):
+        raise NotImplementedError("Jupiter swaps are wallet-signed, not payment orders.")
+
+    async def status(self, provider_order_id: str) -> str:
+        return "wallet_signature_required"
