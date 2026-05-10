@@ -5,6 +5,7 @@ This folder contains a 7-slide pitch structure for a 2 minute 30 second judge or
 ## Files
 
 - `2m30_pitch_template.md` - slide-by-slide timing, talk track, and visual direction.
+- `ratzon_2m30_final.html` - final 7-slide HTML deck with collapsible speaker notes.
 - `ratzon_pitch.html` - browser deck template that can be opened or printed to PDF.
 - `generate_ratzon_pptx.js` - source script for regenerating a PPTX deck when `pptxgenjs` is available.
 - `ratzon_pitch.pptx` - generated editable deck artifact, if present locally.
