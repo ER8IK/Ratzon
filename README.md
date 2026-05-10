@@ -1,247 +1,224 @@
-# Ratzon — Intent Execution Layer for Solana
+# Ratzon
 
-> Say what you want. Ratzon finds the best route and executes it on Solana.
+Ratzon is a QVAC-powered intent execution layer for crypto actions. A user writes what they want in plain language, and Ratzon turns it into a routed, risk-checked, wallet-controlled flow.
 
-**Built for:** Colosseum Frontier Hackathon × Superteam Georgia × Tether QVAC Track
+The first interface is Telegram plus a Next.js WebApp. The product direction is broader: wallets, dApps, and agents should be able to send intents into one execution layer instead of rebuilding routing, safety checks, and recovery flows themselves.
 
----
+Built for Colosseum Frontier Hackathon, Superteam Georgia, and the Tether QVAC track.
 
-## Architecture
+## Demo
 
+Telegram: `@Ratzon_bot`
+
+WebApp: configure `WEB_APP_URL` to your deployed frontend URL, then open it from the Telegram `/start` button.
+
+Try these prompts:
+
+| Prompt | Expected result |
+| --- | --- |
+| `Swap 1 SOL to USDC` | Jupiter quote, route context, risk output, and wallet-controlled approval path |
+| `Swap 50 USDT TRC20 to BTC` | Guarded Smart Swap route with minimum, network, and recoverable payment details |
+| `Price of SOL` | Market price response |
+| `Long SOL with 2x` | Drift route preview with risk framing |
+
+## What Works Today
+
+| Area | Status | Notes |
+| --- | --- | --- |
+| Telegram bot | Live | `/start`, `/help`, `/tour`, `/status`, and natural-language messages |
+| Regex intent parser | Live | Fast path for common swaps, prices, rates, compare, and protocol intents |
+| QVAC LLM parser | Integrated | Local service parses ambiguous requests when available |
+| QVAC Whisper STT | Integrated | Web voice input posts audio to the transcription route |
+| Jupiter quotes | Live | Solana swap quotes and route metadata |
+| Risk engine | Live | Slippage, token, route, and execution warnings |
+| Phantom wallet flow | Implemented | User-controlled signing path for supported Solana swaps |
+| Address safety | Live | Detects BTC, ETH/ERC20, TRON/TRC20, Solana, and invalid addresses |
+| Smart Swap orders | Guarded | Payment details are checked and recoverable in Active Payment |
+| Kamino, Drift, Jito/Marinade | Guarded previews | Routed UX and risk framing before deeper live integrations |
+
+## Product Flow
+
+```text
+User input
+  -> Regex parser + QVAC parser
+  -> Intent dispatcher
+  -> Protocol router
+  -> Adapter: Jupiter / SimpleSwap / Kamino / Drift / staking
+  -> Risk and address safety checks
+  -> User confirmation
+  -> Wallet-controlled execution or guarded payment details
 ```
-User (Telegram / Web)
-        │
-        ▼
-┌───────────────────────────────────────┐
-│           RATZON INTENT LAYER         │
-│                                       │
-│  ┌─────────────┐  ┌────────────────┐  │
-│  │ Regex Parser│  │  QVAC LLM      │  │
-│  │  (fast)     │→ │  (intelligent) │  │
-│  └─────────────┘  └────────────────┘  │
-│         │                │            │
-│         └────────────────┘            │
-│                  │                    │
-│         ┌────────▼────────┐           │
-│         │ Intent Dispatcher│           │
-│         └────────┬────────┘           │
-│                  │                    │
-│         ┌────────▼────────┐           │
-│         │ Protocol Router │           │
-│         └────────┬────────┘           │
-│                  │                    │
-│    ┌─────────────┼──────────────┐     │
-│    ▼             ▼              ▼     │
-│ Jupiter      Risk Engine    Formatter │
-└───────────────────────────────────────┘
-        │
-        ▼
-  Response to user
-```
+
+Ratzon never needs custody of user keys. It prepares the route and makes the risks visible; the user stays in control of approval and payment.
 
 ## QVAC Integration
 
-Ratzon integrates QVAC as its AI backbone:
+`qvac_service/` runs the local AI layer:
 
-| Component | QVAC Module | Purpose |
-|-----------|-------------|---------|
-| LLM Parser | `@qvac/sdk` (Llama 3.2 1B) | Understands complex/ambiguous intents |
-| Speech-to-Text | `@qvac/sdk` (Whisper) | Voice input in Telegram & Web |
+- intent parsing through QVAC LLM tooling
+- voice transcription through QVAC Whisper tooling
+- fallback behavior when QVAC is unavailable, so the demo still works with regex/local routes
 
-**Why QVAC?**
-- Local-first: user messages never leave the server
-- No API keys or cloud costs for AI
-- Works offline — true sovereignty
-
----
-
-## Quick Start
-
-### Prerequisites
-- Python 3.11+
-- Node.js 22.17+
-- npm 10.9+
-
-### 1. Clone and setup
-
-```bash
-git clone https://github.com/yourusername/ratzon
-cd ratzon
-```
-
-### 2. Start QVAC service
+Verify QVAC locally:
 
 ```bash
 cd qvac_service
 corepack pnpm install
 corepack pnpm start
-# Runs on http://localhost:3000
-# First run downloads AI models (~1GB)
 ```
 
-Set `QVAC_URL=http://localhost:3000` for local bot runs. See
-[`qvac_service/README.md`](qvac_service/README.md) for health checks and sample
-requests. For full pitch/runtime validation, use [`docs/runtime-checklist.md`](docs/runtime-checklist.md).
-
-### 3. Start Python bot
+Then set:
 
 ```bash
-cp .env.example .env
-# Add your BOT_TOKEN to .env
-# Set WEB_APP_URL to your public HTTPS frontend URL for Telegram Mini App buttons
+QVAC_URL=http://localhost:3000
+```
 
+More details are in [`qvac_service/README.md`](qvac_service/README.md).
+
+## Local Setup
+
+### Prerequisites
+
+- Python 3.11+
+- Node.js 22.17+
+- Corepack enabled for `pnpm`
+- Telegram bot token
+
+### 1. Install backend dependencies
+
+```bash
+python3 -m venv .venv
+. .venv/bin/activate
 pip install -r requirements.txt
-python3 -m bot.main
-# Bot + API server on port 8080
-# Frontend starts automatically on http://localhost:4000
 ```
 
-### 4. Start frontend manually (optional)
+### 2. Configure environment
 
-```bash
-cd frontend
-npm install
-npm run dev
-# Runs on http://localhost:4000
-```
-
-Set `START_FRONTEND_WITH_BOT=false` if you want to run the frontend as a separate process.
-
-### Telegram Mini App / Railway
-
-`/start` can show a Telegram WebApp button, but Telegram does not auto-open a Mini App from a command. The user must tap the button or use the bot menu button.
-
-For Railway, set these variables on the bot service:
+Create `.env`:
 
 ```bash
 BOT_TOKEN=...
-WEB_APP_URL=https://your-frontend.up.railway.app
+QVAC_URL=http://localhost:3000
+WEB_APP_URL=https://your-public-frontend.example
 START_FRONTEND_WITH_BOT=true
 FRONTEND_HOST=0.0.0.0
-# Leave FRONTEND_PORT empty on Railway so the app uses Railway's PORT automatically.
 FRONTEND_MODE=auto
 ```
 
-If the frontend is deployed as a separate Railway service, set `WEB_APP_URL` to that frontend service URL. If the bot starts the frontend in the same service, use that service's public Railway URL.
+### 3. Run QVAC
 
-Do not set `BOT_API_PORT` to Railway's public `PORT` when the bot starts the frontend in the same service. The bot will move its internal API to a free localhost port automatically.
+```bash
+cd qvac_service
+corepack pnpm install
+corepack pnpm start
+```
 
-If the frontend is deployed as a separate Railway service, set `BOT_API_URL` on that frontend service to the bot service URL, for example Railway's private service URL plus the bot API port.
+### 4. Run bot and API
 
-The included `nixpacks.toml` installs both Python and frontend dependencies, builds Next.js, and starts the bot with `python -m bot.main`. In Railway/production, the bot starts the built frontend with `next start`; locally it keeps using `next dev`.
+```bash
+. .venv/bin/activate
+python -m bot.main
+```
 
-### Or: Docker Compose (все сервисы одной командой)
+The bot API runs internally, and the frontend can be started by the bot when `START_FRONTEND_WITH_BOT=true`.
+
+### 5. Run frontend manually
+
+```bash
+cd frontend
+corepack pnpm install
+corepack pnpm dev
+```
+
+Frontend URL: `http://localhost:4000`
+
+## Docker Compose
 
 ```bash
 cp .env.example .env
-# Add BOT_TOKEN
-
+# set BOT_TOKEN and WEB_APP_URL
 docker-compose up
 ```
 
----
+## Environment Variables
 
-## What it does
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `BOT_TOKEN` | Yes | Telegram bot token |
+| `QVAC_URL` | Recommended | URL for local QVAC service, usually `http://localhost:3000` |
+| `WEB_APP_URL` | Recommended | Public HTTPS URL used by Telegram WebApp buttons |
+| `START_FRONTEND_WITH_BOT` | Optional | Starts Next.js from the bot process when true |
+| `FRONTEND_HOST` | Optional | Host for the bot-managed frontend process |
+| `FRONTEND_PORT` | Optional | Frontend port; leave empty on Railway when sharing `PORT` |
+| `FRONTEND_MODE` | Optional | `auto`, `dev`, or `start` |
+| `BOT_API_PORT` | Optional | Internal API port for frontend requests |
+| `BOT_API_URL` | Optional | Frontend override for bot API URL when services are separate |
+| `SIMPLESWAP_API_KEY` | Optional | Enables live provider calls where configured |
 
-### Supported intents
+## Deployment Notes
 
-| User says | Ratzon does |
-|-----------|-------------|
-| `Swap 1 SOL to USDC` | Live Jupiter quote + risk score |
-| `Buy 1000 BONK` | Swap SOL → BONK |
-| `I want to exchange my solana for stable` | LLM parses → Swap SOL → USDC |
-| `Price of BONK` | Live price from Jupiter |
-| `Compare SOL and JUP` | Side-by-side price comparison |
-| `Rate SOL to USDC` | Current exchange rate |
-| `Swap 50 USDT TRC20 to BTC` | Smart cross-chain route + payment safety checks |
-| `Stake 1 SOL` | Jito/Marinade staking route + wallet safety review |
-| `Find best yield for USDC` | Kamino earn route + recoverable position details |
-| `Long SOL with 2x` | Drift market route + risk controls |
-| 🎤 Voice message | Whisper STT → intent → execution |
+Telegram Mini Apps require a public HTTPS `WEB_APP_URL`. Telegram will show the WebApp button from `/start`; it will not automatically open a Mini App from a command.
 
-### Protocol routing
+Railway:
 
-Ratzon now has a protocol router between parsed intents and protocol clients:
+- keep `WEB_APP_URL` pointed at the public frontend URL
+- set `FRONTEND_HOST=0.0.0.0`
+- leave `FRONTEND_PORT` empty if Railway owns `PORT`
+- use `BOT_API_URL` when frontend and bot are deployed as separate services
 
-| Adapter | Status | Role |
-|---------|--------|------|
-| Jupiter | Live | Swap quotes, swap transactions, token rates |
-| SimpleSwap Network | Guarded | Cross-chain smart route, dynamic minimum, recoverable payment details |
-| Kamino | Guarded | Lend, borrow, vault/yield intents |
-| Drift | Guarded | Perps and advanced trading intents |
-| Jito / Marinade | Guarded | Staking and liquid staking intents |
-
-QVAC decides what the user wants. The protocol router decides which adapter
-should handle it. Jupiter remains the default live swap adapter while Smart Swap
-routes protect cross-chain payment details.
-
-### Safety and recovery layer
-
-The pitch scenario includes a safety layer focused on preventing payment losses:
-
-- Address Safety Check detects Ethereum/ERC20, TRON/TRC20, Solana, BTC, or invalid addresses.
-- Wrong-network payout addresses are rejected before payment details are issued.
-- Dynamic provider minimums are shown in the route and risk output.
-- Active Payment recovery keeps amount, destination, network, memo/tag, and status available through the WebApp.
-
-### Execution Coverage
-
-| Feature | Status |
-|---------|--------|
-| Intent parsing (regex + LLM) | ✅ Real |
-| Jupiter live quotes | ✅ Real |
-| Risk engine | ✅ Real |
-| Address/network safety checks | ✅ Real |
-| QVAC LLM parser | ✅ Real |
-| QVAC Whisper STT | ✅ Real |
-| SimpleSwap order recovery | ✅ Guarded |
-| Transaction signing | ✅ Wallet-controlled |
-
----
+`nixpacks.toml` installs Python and frontend dependencies, builds Next.js, and starts the bot with `python -m bot.main`.
 
 ## Project Structure
 
-```
+```text
 ratzon/
-├── bot/                    # Python Telegram bot
-│   ├── main.py             # Entry point (bot + API server)
-│   ├── api_server.py       # HTTP API for frontend
-│   ├── handlers/           # aiogram handlers
-│   ├── intents/            # Parser (regex + QVAC LLM)
-│   │   ├── parser.py       # Hybrid parser
-│   │   └── llm_parser.py   # QVAC LLM client
-│   ├── services/           # Business logic
-│   ├── solana/             # Jupiter integration
-│   └── risk/               # Risk engine
-│
-├── qvac_service/           # Node.js QVAC AI service
-│   ├── server.js           # HTTP server
-│   ├── intent_parser.js    # LLM intent parsing
-│   └── stt.js              # Speech-to-text
-│
-├── frontend/               # Next.js web app
-│   └── src/
-│       ├── app/            # Pages + API routes
-│       └── components/     # UI components
-│
-├── docker-compose.yml
-└── README.md
+  bot/                  Telegram bot, API server, intent parsing, routing, risk
+  frontend/             Next.js WebApp, API routes, UI components
+  qvac_service/         Local QVAC LLM and Whisper service
+  tests/                Parser, risk, Phantom, and smart-order tests
+  docs/                 Runtime and validation notes
+  pitch/                2:30 pitch template and deck source
+  docker-compose.yml    Local multi-service runner
 ```
 
----
+## Frontend Stack
 
-## Try it
+- Next.js App Router
+- TailwindCSS for layout and visual system
+- MUI for polished chips, tooltips, and action surfaces
+- GSAP for restrained motion with `prefers-reduced-motion` support
+- lucide-react icons
 
-**Telegram:** @Ratzon_bot
+## Validation
 
-**Web:** Ratzon WebApp
+```bash
+cd frontend
+corepack pnpm build
 
----
+cd ..
+.venv/bin/python -m pytest
+```
 
-## Built with
+## Pitch
 
-- Python · aiogram · aiohttp
-- Jupiter Aggregator V6 API
-- QVAC SDK (Llama 3.2 1B + Whisper)
-- Next.js · TailwindCSS
-- Solana
+The investor/judge pitch template lives in [`pitch/README.md`](pitch/README.md). It is structured for a 2:30 demo:
+
+1. Cover
+2. Problem
+3. Demo moment
+4. How it works
+5. Product vision
+6. Wedge
+7. Traction and ask
+
+## Roadmap
+
+- harden live signed execution across more wallets and mobile paths
+- deepen Smart Swap provider integrations and status refresh
+- expand guarded DeFi actions: staking, lending, yield, perps
+- package the intent layer for wallets, dApps, and agent integrations
+- onboard beta users from Telegram-native Solana traders
+
+## Built With
+
+Python, aiogram, aiohttp, Next.js, React, TailwindCSS, MUI, GSAP, Solana Web3.js, Jupiter Aggregator, QVAC, and Phantom.

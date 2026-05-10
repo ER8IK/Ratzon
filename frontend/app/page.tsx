@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { gsap } from "gsap";
 import {
   Activity,
   AlertTriangle,
@@ -15,6 +16,7 @@ import QuickActions from "@/components/QuickActions";
 import ActivePaymentPanel from "@/components/ActivePaymentPanel";
 import DriftPanel from "@/components/DriftPanel";
 import SafetyCheckPanel, { SAMPLE_ADDRESSES } from "@/components/SafetyCheckPanel";
+import StatusChip from "@/components/StatusChip";
 
 const DEFAULT_PROTOCOL_MODES = [
   { label: "Swap", value: "Jupiter", status: "Live", intent: "Swap 1 SOL to USDC" },
@@ -214,8 +216,48 @@ export default function Home() {
   const [activeOrderError, setActiveOrderError] = useState<string | null>(null);
   const [orderLoading, setOrderLoading] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
+  const pageRef = useRef<HTMLElement | null>(null);
   const resultRef = useRef<HTMLDivElement | null>(null);
   const toolsRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!pageRef.current) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const context = gsap.context(() => {
+      gsap.fromTo(
+        ".gsap-reveal",
+        { autoAlpha: 0, y: 18 },
+        {
+          autoAlpha: 1,
+          y: 0,
+          duration: 0.55,
+          ease: "power2.out",
+          stagger: 0.08,
+        },
+      );
+    }, pageRef.current);
+
+    return () => context.revert();
+  }, []);
+
+  useEffect(() => {
+    if (!loading || !resultRef.current) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const context = gsap.context(() => {
+      gsap.to(".gsap-route-active", {
+        scale: 1.06,
+        boxShadow: "0 0 30px rgba(232, 58, 66, 0.34)",
+        duration: 0.58,
+        repeat: -1,
+        yoyo: true,
+        ease: "sine.inOut",
+      });
+    }, resultRef.current);
+
+    return () => context.revert();
+  }, [loading]);
 
   useEffect(() => {
     try {
@@ -632,7 +674,7 @@ export default function Home() {
     !inWalletExecution && (isTelegramWebView() || isMobileDevice());
 
   return (
-    <main className="min-h-screen bg-[#050706] text-[#f6f8f7]">
+    <main ref={pageRef} className="min-h-screen bg-[#050706] text-[#f6f8f7]">
       <header className="sticky top-0 z-20 border-b border-[#1f2927] bg-[#050706]/90 px-4 py-3 backdrop-blur-xl sm:px-6">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
@@ -652,14 +694,18 @@ export default function Home() {
           </div>
 
           <div className="hidden items-center gap-2 text-xs text-[#c3cecb] sm:flex">
-            <span className="inline-flex h-8 items-center gap-2 rounded-lg border border-[#265744] bg-[#0b2118] px-3">
-              <span className="h-2 w-2 rounded-full bg-[#36d27f]" />
-              QVAC integrated
-            </span>
-            <span className="inline-flex h-8 items-center gap-2 rounded-lg border border-[#3a3030] bg-[#171110] px-3">
-              <Wallet className="h-3.5 w-3.5 text-[#62d5f6]" />
-              Wallet-controlled
-            </span>
+            <StatusChip
+              label="QVAC integrated"
+              tone="green"
+              tooltip="Text and voice intents are parsed before routing."
+              icon={<span className="h-2 w-2 rounded-full bg-[#36d27f]" />}
+            />
+            <StatusChip
+              label="Wallet-controlled"
+              tone="cyan"
+              tooltip="Ratzon prepares routes; users approve wallet actions."
+              icon={<Wallet className="h-3.5 w-3.5" />}
+            />
           </div>
         </div>
       </header>
@@ -667,7 +713,7 @@ export default function Home() {
       <div className="mx-auto max-w-[1500px] px-4 py-5 sm:px-6 lg:px-8">
         <section className="grid gap-5 xl:grid-cols-[minmax(0,640px)_minmax(0,1fr)]">
           <div className="space-y-4">
-            <section className="premium-panel p-5 shadow-[0_24px_90px_rgba(0,0,0,0.34)]">
+            <section className="premium-panel gsap-reveal p-5 shadow-[0_24px_90px_rgba(0,0,0,0.34)]">
               <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_220px]">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#70e1a6]">
@@ -706,7 +752,7 @@ export default function Home() {
               </div>
             </section>
 
-            <section className="premium-panel p-5">
+            <section className="premium-panel gsap-reveal p-5">
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#93a0a1]">
@@ -728,7 +774,7 @@ export default function Home() {
 
           <section
             ref={resultRef}
-            className="premium-panel min-h-[560px] shadow-[0_24px_90px_rgba(0,0,0,0.34)] xl:sticky xl:top-24 xl:self-start"
+            className="premium-panel gsap-reveal min-h-[560px] shadow-[0_24px_90px_rgba(0,0,0,0.34)] xl:sticky xl:top-24 xl:self-start"
           >
             <div className="border-b border-[#202a28] px-4 py-5 sm:px-5">
               <div className="flex items-center justify-between gap-3">
@@ -740,9 +786,11 @@ export default function Home() {
                     {error ? "Needs attention" : result ? "Route prepared" : loading ? "Finding route" : "Awaiting intent"}
                   </h2>
                 </div>
-                <span className="inline-flex h-8 items-center rounded-lg border border-[#293134] bg-[#101516] px-3 text-xs font-medium text-[#aab4b5]">
-                  {error ? "Request failed" : result ? "Checks complete" : "Standing by"}
-                </span>
+                <StatusChip
+                  label={error ? "Request failed" : result ? "Checks complete" : "Standing by"}
+                  tone={error ? "red" : result ? "green" : "neutral"}
+                  tooltip={result ? "Route, risk, and next action are ready." : "Start with an intent on the left."}
+                />
               </div>
             </div>
 
@@ -804,7 +852,7 @@ export default function Home() {
 
         <section
           ref={toolsRef}
-          className="mt-5 grid scroll-mt-24 gap-4 lg:grid-cols-2 2xl:grid-cols-4"
+          className="gsap-reveal mt-5 grid scroll-mt-24 gap-4 lg:grid-cols-2 2xl:grid-cols-4"
         >
           <ActivePaymentPanel
             order={activeOrder}
@@ -904,7 +952,7 @@ function RoutePlaceholder({
             <span>{loading ? "IN" : "1"}</span>
           </div>
           <div className="h-px min-w-8 flex-1 bg-[#455255]" />
-          <div className="route-node route-node-accent">
+          <div className="route-node route-node-accent gsap-route-active">
             <span>{loading ? "OK" : "2"}</span>
           </div>
           <div className="h-px min-w-8 flex-1 bg-[#455255]" />
